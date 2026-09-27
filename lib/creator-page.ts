@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { isSupabaseConfigured } from "@/lib/env";
 import { httpsUrl } from "@/lib/format";
+import { reactionCountsFor, reactionsUnavailable, viewerReactionsFor } from "@/lib/reactions";
 import { commentThreads, toFeedPost, toGoal, toPage, toPostImage, toRole, toWishlistCategory } from "@/lib/rows";
 import { createClient } from "@/lib/supabase/server";
 import type { CreatorPage, FeedPost, Goal, PostImage, Viewer, WishlistCategory } from "@/lib/types";
@@ -51,7 +52,7 @@ export const loadCreatorPage = cache(async (slug: string): Promise<LoadCreatorRe
   const page = toPage(pageRow);
   const viewer = await getViewer();
 
-  const [goalsResult, categoriesResult, coversResult, feedResult, commentsResult, countResult, followResult, memberResult] =
+  const [goalsResult, categoriesResult, coversResult, feedResult, commentsResult, reactionsResult, mineResult, countResult, followResult, memberResult] =
     await Promise.all([
     supabase
       .from("goals")
@@ -78,6 +79,10 @@ export const loadCreatorPage = cache(async (slug: string): Promise<LoadCreatorRe
       )
       .eq("page_id", page.id)
       .order("created_at", { ascending: true }),
+    supabase.rpc("reaction_totals", { p_page_id: page.id }),
+    viewer
+      ? supabase.from("post_reactions").select("post_id, emoji").eq("page_id", page.id).eq("user_id", viewer.id)
+      : Promise.resolve({ data: [], error: null }),
     supabase
       .from("followers")
       .select("user_id", { count: "exact", head: true })
@@ -105,6 +110,14 @@ export const loadCreatorPage = cache(async (slug: string): Promise<LoadCreatorRe
   if (coversResult.error) return { status: "error", message: coversResult.error.message };
   if (feedResult.error) return { status: "error", message: feedResult.error.message };
   if (commentsResult.error) return { status: "error", message: commentsResult.error.message };
+  if (reactionsResult.error && !reactionsUnavailable(reactionsResult.error.message)) {
+    return { status: "error", message: reactionsResult.error.message };
+  }
+  if (mineResult.error && !reactionsUnavailable(mineResult.error.message)) {
+    return { status: "error", message: mineResult.error.message };
+  }
+  const reactionRows = reactionsUnavailable(reactionsResult.error?.message) ? [] : (reactionsResult.data ?? []);
+  const mineRows = reactionsUnavailable(mineResult.error?.message) ? [] : (mineResult.data ?? []);
   if (countResult.error) return { status: "error", message: countResult.error.message };
   if (followResult.error) return { status: "error", message: followResult.error.message };
   if (memberResult.error) return { status: "error", message: memberResult.error.message };
@@ -122,7 +135,12 @@ export const loadCreatorPage = cache(async (slug: string): Promise<LoadCreatorRe
       posts: (feedResult.data ?? []).map((row: unknown) => {
         const post = toFeedPost(row);
         if (post.is_locked) return post;
-        return { ...post, comments: commentThreads(commentsResult.data ?? [], post.id) };
+        return {
+          ...post,
+          comments: commentThreads(commentsResult.data ?? [], post.id),
+          reactions: reactionCountsFor(reactionRows, post.id),
+          viewerReactions: viewerReactionsFor(mineRows, post.id),
+        };
       }),
       followerCount: countResult.count ?? 0,
       isFollowing: Boolean(followResult.data),

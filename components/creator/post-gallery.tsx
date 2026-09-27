@@ -87,7 +87,11 @@ export function PostGallery({
               <p className="text-xs tracking-[0.28em] text-muted-foreground uppercase">
                 {label(openIndex + 1)} / {label(count)}
               </p>
-              <button type="button" className="text-sm tracking-wide text-foreground" onClick={() => dialogRef.current?.close()}>
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center px-2 text-sm tracking-wide text-foreground"
+                onClick={() => dialogRef.current?.close()}
+              >
                 Close
               </button>
             </div>
@@ -102,30 +106,33 @@ export function PostGallery({
               <div className="flex items-center justify-center gap-8 px-4 py-4">
                 <button
                   type="button"
-                  className="text-sm tracking-wide text-muted-foreground disabled:opacity-30"
+                  className="inline-flex min-h-11 items-center px-2 text-sm tracking-wide text-muted-foreground disabled:opacity-30"
                   disabled={openIndex === 0}
                   onClick={() => step(-1)}
                 >
                   Previous
                 </button>
-                <div className="flex gap-1.5">
+                <div className="flex">
                   {images.map((image, index) => (
                     <button
                       key={`${image.url}-viewer-${index}`}
                       type="button"
                       aria-label={`Photo ${index + 1}`}
                       aria-current={index === openIndex ? "true" : undefined}
-                      className={cn(
-                        "size-1.5 rounded-full",
-                        index === openIndex ? "h-1.5 w-3 bg-foreground" : "size-1.5 bg-foreground/35",
-                      )}
+                      className="inline-flex size-11 items-center justify-center"
                       onClick={() => setOpenIndex(index)}
-                    />
+                    >
+                      <span
+                        className={
+                          index === openIndex ? "h-1.5 w-3 rounded-full bg-foreground" : "size-1.5 rounded-full bg-foreground/35"
+                        }
+                      />
+                    </button>
                   ))}
                 </div>
                 <button
                   type="button"
-                  className="text-sm tracking-wide text-muted-foreground disabled:opacity-30"
+                  className="inline-flex min-h-11 items-center px-2 text-sm tracking-wide text-muted-foreground disabled:opacity-30"
                   disabled={openIndex === count - 1}
                   onClick={() => step(1)}
                 >

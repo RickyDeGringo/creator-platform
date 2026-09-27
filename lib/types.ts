@@ -1,3 +1,5 @@
+import type { ReactionCount, ReactionEmoji } from "@/lib/reactions";
+
 export type PageRole = "owner" | "manager";
 
 export type ActionState = {
@@ -115,6 +117,8 @@ export type FeedPost = {
   images: PostImage[];
   goals: PostGoal[];
   comments: PostComment[];
+  reactions: ReactionCount[];
+  viewerReactions: ReactionEmoji[];
   is_paywalled: boolean;
   is_locked: boolean;
   created_at: string;
@@ -127,6 +131,8 @@ export type ManagedPost = {
   image_url: string | null;
   images: PostImage[];
   goals: { id: string; title: string }[];
+  comment_count: number;
+  reactions: ReactionCount[];
   is_paywalled: boolean;
   created_at: string;
 };

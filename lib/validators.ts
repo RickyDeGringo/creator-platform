@@ -107,6 +107,16 @@ export function friendlyDbError(message: string) {
   if (message.includes("too_many_covers")) return "A cover can show 5 images.";
   if (message.includes("too_many_comments")) return "This post has as many comments as it can hold.";
   if (message.includes("not_following")) return "Follow this creator to comment.";
+  if (message.includes("react_follow")) return "Follow this creator to react.";
+  if (message.includes("react_locked")) return "Subscribe to react to this post.";
+  if (message.includes("react_emoji")) return "Choose a reaction.";
+  if (message.includes("too_many_reactions")) return "This post has as many reactions as it can hold.";
+  if (
+    (message.includes("schema cache") || message.includes("does not exist") || message.includes("could not find")) &&
+    (message.includes("post_reactions") || message.includes("reaction_totals"))
+  ) {
+    return "Reactions are not available until the latest database migration is applied.";
+  }
   if (message.includes("post_locked")) return "Subscribe to comment on this post.";
   if (message.includes("comment_thread")) return "Reply to the original comment.";
   if (message.includes("comment_length")) return "Comments can be up to 1000 characters.";

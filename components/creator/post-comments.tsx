@@ -49,7 +49,7 @@ export function PostComments({
                 <div className="mt-2">
                   <button
                     type="button"
-                    className="text-xs text-muted-foreground underline underline-offset-2"
+                    className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline underline-offset-2"
                     onClick={() => setReplyTo((current) => (current === comment.id ? null : comment.id))}
                   >
                     {replyTo === comment.id ? "Cancel reply" : "Reply"}
@@ -72,7 +72,7 @@ export function PostComments({
           <p className="text-sm text-muted-foreground">Follow to comment.</p>
         ) : (
           <p className="text-sm text-muted-foreground">
-            <Link href={`/login?next=/${slug}`} className="underline underline-offset-2">
+            <Link href={`/login?next=/${slug}`} className="inline-flex min-h-11 items-center underline underline-offset-2">
               Sign in
             </Link>{" "}
             and follow to comment.
@@ -144,7 +144,7 @@ function SocialLinks({ author }: { author: CommentAuthor }) {
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-muted-foreground underline underline-offset-2"
+          className="inline-flex min-h-11 items-center px-1 text-sm text-muted-foreground underline underline-offset-2"
         >
           {label}
         </a>

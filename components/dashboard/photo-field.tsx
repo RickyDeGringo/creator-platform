@@ -151,7 +151,7 @@ export function PhotoField({
                 />
                 <button
                   type="button"
-                  className="absolute top-1 right-1 rounded-md bg-background/90 px-1.5 py-0.5 text-xs"
+                  className="absolute right-1 bottom-1 inline-flex min-h-11 items-center rounded-md bg-background/90 px-3 text-sm"
                   onClick={() => removeDraft(draft.id)}
                 >
                   Remove

@@ -30,7 +30,7 @@ export function CoverBanner({ images }: { images: PostImage[] }) {
             <button
               type="button"
               aria-label="Previous cover"
-              className="rounded-full bg-background/80 px-3 py-1 text-sm"
+              className="inline-flex min-h-11 items-center rounded-full bg-background/80 px-4 text-sm"
               onClick={() => setIndex((value) => (value - 1 + images.length) % images.length)}
             >
               Previous
@@ -40,22 +40,26 @@ export function CoverBanner({ images }: { images: PostImage[] }) {
             <button
               type="button"
               aria-label="Next cover"
-              className="rounded-full bg-background/80 px-3 py-1 text-sm"
+              className="inline-flex min-h-11 items-center rounded-full bg-background/80 px-4 text-sm"
               onClick={() => setIndex((value) => (value + 1) % images.length)}
             >
               Next
             </button>
           </div>
-          <div className="absolute bottom-16 left-1/2 flex -translate-x-1/2 gap-1.5">
+          <div className="absolute bottom-14 left-1/2 flex -translate-x-1/2">
             {images.map((image, dot) => (
               <button
                 key={image.url}
                 type="button"
                 aria-label={`Cover ${dot + 1}`}
                 aria-current={dot === index ? "true" : undefined}
-                className={dot === index ? "h-1.5 w-3 rounded-full bg-foreground" : "size-1.5 rounded-full bg-foreground/35"}
+                className="inline-flex size-11 items-center justify-center"
                 onClick={() => setIndex(dot)}
-              />
+              >
+                <span
+                  className={dot === index ? "h-1.5 w-3 rounded-full bg-foreground" : "size-1.5 rounded-full bg-foreground/35"}
+                />
+              </button>
             ))}
           </div>
         </>

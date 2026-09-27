@@ -166,10 +166,23 @@ export function toFeedPost(value: unknown): FeedPost {
     images: imagesFromRow(row),
     goals: goalsFromRow(row),
     comments: [],
+    reactions: [],
+    viewerReactions: [],
     is_paywalled: Boolean(row.is_paywalled),
     is_locked: Boolean(row.is_locked),
     created_at: String(row.created_at),
   };
+}
+
+function embeddedCount(value: unknown) {
+  const rows = Array.isArray(value) ? value : value == null ? [] : [value];
+  if (rows.length === 0) return 0;
+  const first = record(rows[0]);
+  if ("count" in first) {
+    const count = Number(first.count);
+    return Number.isFinite(count) ? count : 0;
+  }
+  return rows.length;
 }
 
 export function toManagedPost(value: unknown): ManagedPost {
@@ -181,6 +194,8 @@ export function toManagedPost(value: unknown): ManagedPost {
     image_url: row.image_url == null ? null : String(row.image_url),
     images: imagesFromRow(row),
     goals: goalsFromRow(row).map((goal) => ({ id: goal.id, title: goal.title })),
+    comment_count: embeddedCount(row.comments),
+    reactions: [],
     is_paywalled: Boolean(row.is_paywalled),
     created_at: String(row.created_at),
   };

@@ -57,7 +57,7 @@ export function DashboardTabs({
         id="manage-tablist"
         role="tablist"
         aria-label="Page management"
-        className="flex flex-wrap gap-x-5 gap-y-2 border-b border-foreground/10"
+        className="flex flex-wrap gap-x-3 gap-y-1 border-b border-foreground/10"
       >
         {tabs.map((item) => {
           const selected = tab === item.id;
@@ -77,7 +77,7 @@ export function DashboardTabs({
                 move(item.id, event.key);
               }}
               className={cn(
-                "-mb-px border-b-2 pb-2 font-heading text-2xl transition-colors sm:text-3xl",
+                "-mb-px inline-flex min-h-11 items-center border-b-2 px-1 font-heading text-2xl transition-colors sm:text-3xl",
                 selected
                   ? "border-foreground text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground",

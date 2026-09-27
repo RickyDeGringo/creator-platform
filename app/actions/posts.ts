@@ -250,12 +250,17 @@ export async function updatePost(slug: string, _prev: ActionState, formData: For
   if (!existing) return { error: "That post is gone." };
   if (!content && !existing.image_url) return { error: "Add text, or keep a photo on the post." };
 
+  const changes: { content: string | null; created_at: string; is_paywalled?: boolean } = {
+    content: content || null,
+    created_at: published.at,
+  };
+  if (formData.get("update_paywall") === "1") {
+    changes.is_paywalled = formData.get("is_paywalled") === "on";
+  }
+
   const { error } = await supabase
     .from("posts")
-    .update({
-      content: content || null,
-      created_at: published.at,
-    })
+    .update(changes)
     .eq("id", postId)
     .eq("page_id", access.page.id);
   if (error) return { error: friendlyDbError(error.message) };

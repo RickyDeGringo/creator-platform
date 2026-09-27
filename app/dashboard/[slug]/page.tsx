@@ -12,6 +12,7 @@ import { SetupNotice } from "@/components/setup-notice";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/env";
+import { reactionCountsFor, reactionsUnavailable } from "@/lib/reactions";
 import { toAccessCode, toCoverImage, toGoal, toManagedPost, toPage, toPageMember, toRole, toWishlistCategory } from "@/lib/rows";
 import { createClient } from "@/lib/supabase/server";
 import { friendlyDbError } from "@/lib/validators";
@@ -77,11 +78,11 @@ export default async function DashboardSlugPage({ params }: Props) {
     );
   }
 
-  const [postsResult, goalsResult, categoriesResult, coversResult, codesResult, membersResult] = await Promise.all([
+  const [postsResult, goalsResult, categoriesResult, coversResult, codesResult, membersResult, reactionsResult] = await Promise.all([
     supabase
       .from("posts")
       .select(
-        "id, page_id, content, image_url, is_paywalled, created_at, post_images(url, width, height, sort_order), post_goals(sort_order, goals(id, title))",
+        "id, page_id, content, image_url, is_paywalled, created_at, post_images(url, width, height, sort_order), post_goals(sort_order, goals(id, title)), comments(count)",
       )
       .eq("page_id", page.id)
       .order("created_at", { ascending: false }),
@@ -108,6 +109,7 @@ export default async function DashboardSlugPage({ params }: Props) {
       .eq("page_id", page.id)
       .order("created_at", { ascending: false }),
     supabase.from("page_members").select("user_id, role, users(username)").eq("page_id", page.id),
+    supabase.rpc("reaction_totals", { p_page_id: page.id }),
   ]);
 
   const members = (membersResult.data ?? [])
@@ -140,14 +142,16 @@ export default async function DashboardSlugPage({ params }: Props) {
       categoriesResult.error ||
       coversResult.error ||
       codesResult.error ||
-      membersResult.error ? (
+      membersResult.error ||
+      (reactionsResult.error && !reactionsUnavailable(reactionsResult.error.message)) ? (
         <p className="mt-6 text-sm text-destructive">
           {postsResult.error?.message ??
             goalsResult.error?.message ??
             categoriesResult.error?.message ??
             coversResult.error?.message ??
             codesResult.error?.message ??
-            membersResult.error?.message}
+            membersResult.error?.message ??
+            reactionsResult.error?.message}
         </p>
       ) : null}
 
@@ -173,7 +177,11 @@ export default async function DashboardSlugPage({ params }: Props) {
         posts={
           <PostManager
             slug={page.slug}
-            posts={(postsResult.data ?? []).map(toManagedPost)}
+            posts={(postsResult.data ?? []).map((row) => {
+              const post = toManagedPost(row);
+              const rows = reactionsUnavailable(reactionsResult.error?.message) ? [] : (reactionsResult.data ?? []);
+              return { ...post, reactions: reactionCountsFor(rows, post.id) };
+            })}
             goals={(goalsResult.data ?? []).map(toGoal)}
             categories={(categoriesResult.data ?? []).flatMap((row) => {
               const category = toWishlistCategory(row);

@@ -47,7 +47,7 @@ export function CreatorTabs({
                 move(item.id, event.key);
               }}
               className={cn(
-                "-mb-px border-b-2 pb-2 font-heading text-3xl transition-colors",
+                "-mb-px inline-flex min-h-11 items-center border-b-2 px-1 font-heading text-3xl transition-colors",
                 selected
                   ? "border-foreground text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground",

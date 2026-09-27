@@ -38,7 +38,7 @@ export function DesignManager({
               <label
                 key={item.id}
                 className={cn(
-                  "flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2 ring-1 ring-foreground/10 has-[:checked]:ring-2 has-[:checked]:ring-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+                  "flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 py-3 ring-1 ring-foreground/10 has-[:checked]:ring-2 has-[:checked]:ring-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
                 )}
               >
                 <input
@@ -74,7 +74,7 @@ export function DesignManager({
             {pageFonts.map((item) => (
               <label
                 key={item.id}
-                className="flex cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2 ring-1 ring-foreground/10 has-[:checked]:ring-2 has-[:checked]:ring-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring"
+                className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-3 ring-1 ring-foreground/10 has-[:checked]:ring-2 has-[:checked]:ring-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring"
               >
                 <input
                   type="radio"

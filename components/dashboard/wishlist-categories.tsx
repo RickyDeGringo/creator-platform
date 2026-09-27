@@ -28,7 +28,7 @@ function CategoryRow({ slug, category }: { slug: string; category: WishlistCateg
   }, [renameState]);
 
   return (
-    <li className="px-3 py-2">
+    <li className="px-3 py-2 sm:py-1.5">
       {editing ? (
         <form action={renameAction} className="flex items-center gap-2">
           <input type="hidden" name="categoryId" value={category.id} />
@@ -52,7 +52,7 @@ function CategoryRow({ slug, category }: { slug: string; category: WishlistCateg
           </Button>
         </form>
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="min-w-0 flex-1 truncate text-sm">{category.name}</span>
           <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(true)}>
             Rename

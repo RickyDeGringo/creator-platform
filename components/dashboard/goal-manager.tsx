@@ -128,8 +128,8 @@ function GoalForm({
           <div className="flex items-end gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={goal.image_url} alt="" className="h-20 w-auto max-w-32 rounded-lg bg-muted object-contain" />
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="remove_image" className="size-4" />
+            <label className="flex min-h-11 items-center gap-3 text-base sm:text-sm">
+              <input type="checkbox" name="remove_image" className="size-5 shrink-0" />
               Remove photo
             </label>
           </div>
@@ -212,17 +212,18 @@ function GoalRow({
 
   return (
     <li>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2">
+      <div className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:py-2">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
         <button type="button" onClick={() => setOpen(true)} className="shrink-0" aria-label={`Edit ${goal.title}`}>
           {goal.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={goal.image_url} alt="" className="size-10 rounded-md bg-muted object-cover" />
+            <img src={goal.image_url} alt="" className="size-12 rounded-md bg-muted object-cover" />
           ) : (
-            <span className="block size-10 rounded-md bg-muted" />
+            <span className="block size-12 rounded-md bg-muted" />
           )}
         </button>
-        <button type="button" onClick={() => setOpen(true)} className="min-w-0 flex-1 text-left">
-          <span className="block truncate text-sm font-medium">{goal.title}</span>
+        <button type="button" onClick={() => setOpen(true)} className="flex min-h-12 min-w-0 flex-1 flex-col justify-center text-left">
+          <span className="block truncate text-base font-medium sm:text-sm">{goal.title}</span>
           {tags.length > 0 ? (
             <span className="mt-1 flex gap-1 overflow-hidden">
               {tags.map((tag) => (
@@ -236,7 +237,8 @@ function GoalRow({
             </span>
           ) : null}
         </button>
-        <form action={action} className="ml-auto flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
+        </div>
+        <form action={action} className="flex w-full items-center gap-3 sm:w-auto" onClick={(event) => event.stopPropagation()}>
           <label className="sr-only" htmlFor={`raised-${goal.id}`}>
             Amount raised for {goal.title}
           </label>
@@ -247,7 +249,7 @@ function GoalRow({
             defaultValue={raised}
             aria-label={`Amount raised for ${goal.title}`}
             disabled={pending}
-            className="h-8 w-24 text-right"
+            className="h-11 min-w-0 flex-1 text-right text-base sm:h-8 sm:w-24 sm:flex-none sm:text-sm"
             onBlur={(event) => {
               if (event.currentTarget.value !== raised) event.currentTarget.form?.requestSubmit();
             }}

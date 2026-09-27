@@ -89,8 +89,8 @@ export function PageDetailsForm({ page, covers }: { page: CreatorPage; covers: C
               <li key={cover.id} className="relative shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={cover.url} alt={`Cover ${index + 1}`} className="h-24 w-36 rounded-lg bg-muted object-cover" />
-                <label className="mt-1 flex items-center gap-1.5 text-xs">
-                  <input type="checkbox" name="remove_cover" value={cover.id} className="size-3.5" />
+                <label className="mt-1 flex min-h-11 items-center gap-2 text-sm">
+                  <input type="checkbox" name="remove_cover" value={cover.id} className="size-5 shrink-0" />
                   Remove
                 </label>
               </li>

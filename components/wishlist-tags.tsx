@@ -6,7 +6,7 @@ import { MAX_GOAL_TAGS } from "@/lib/validators";
 
 export function tagPillClass(selected: boolean, disabled = false) {
   return cn(
-    "inline-flex items-center rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+    "inline-flex min-h-11 items-center rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors sm:min-h-0",
     "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none",
     selected ? "bg-primary text-primary-foreground" : "bg-muted text-foreground/70 hover:bg-muted/80",
     disabled ? "cursor-not-allowed opacity-40 hover:bg-muted" : "cursor-pointer",

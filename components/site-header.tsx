@@ -12,11 +12,11 @@ export function SiteHeader({
 }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-3 px-4">
-        <Link href="/" className="font-heading text-2xl leading-none tracking-tight">
+      <div className="mx-auto flex min-h-14 w-full max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2">
+        <Link href="/" className="inline-flex min-h-11 items-center font-heading text-2xl leading-none tracking-tight">
           Booth
         </Link>
-        <nav className="flex items-center gap-1 sm:gap-2">
+        <nav className="flex flex-wrap items-center justify-end gap-1 sm:gap-2">
           <Link href="/redeem" className={buttonVariants({ variant: "ghost", size: "sm" })}>
             Redeem
           </Link>

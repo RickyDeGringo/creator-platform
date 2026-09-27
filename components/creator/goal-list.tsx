@@ -1,4 +1,5 @@
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "cn";
 import { formatMoney, progressPercent, supportLink } from "@/lib/format";
 import type { Goal } from "@/lib/types";
 
@@ -46,7 +47,7 @@ export function GoalList({
               <div className="size-28 shrink-0 rounded-xl bg-muted sm:size-36" aria-hidden="true" />
             )}
             <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   {tags.length > 0 ? (
                     <div className="mb-2 flex flex-wrap gap-1.5">
@@ -70,7 +71,7 @@ export function GoalList({
                     href={support.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={buttonVariants({ size: "sm" })}
+                    className={cn(buttonVariants({ size: "sm" }), "w-full sm:w-auto")}
                   >
                     {support.label}
                   </a>

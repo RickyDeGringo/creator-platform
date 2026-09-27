@@ -57,7 +57,7 @@ export function AuthForm({ next }: { next: string }) {
         </form>
         <button
           type="button"
-          className="mt-4 text-sm text-muted-foreground underline-offset-4 hover:underline"
+          className="mt-4 inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:underline"
           onClick={() => setMode(mode === "sign-in" ? "sign-up" : "sign-in")}
         >
           {mode === "sign-in" ? "Need an account? Sign up" : "Already have an account? Sign in"}

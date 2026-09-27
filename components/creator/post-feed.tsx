@@ -1,4 +1,5 @@
 import { PostComments } from "@/components/creator/post-comments";
+import { PostReactions } from "@/components/creator/post-reactions";
 import { PostFrame } from "@/components/creator/post-edit";
 import { PostGallery } from "@/components/creator/post-gallery";
 import { buttonVariants } from "@/components/ui/button";
@@ -121,6 +122,13 @@ export function PostFeed({
                 })}
               </ul>
             ) : null}
+            <PostReactions
+              slug={slug}
+              postId={post.id}
+              reactions={post.reactions}
+              viewerReactions={post.viewerReactions}
+              access={access}
+            />
             <PostComments slug={slug} postId={post.id} comments={post.comments} access={access} />
             </PostFrame>
           </article>

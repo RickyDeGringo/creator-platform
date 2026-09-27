@@ -100,7 +100,7 @@ export function WishlistBoard({
           aria-label="Sort wishlist"
           value={sort}
           onChange={(event) => setSort(event.target.value as SortId)}
-          className="h-10 rounded-lg border border-input bg-card px-2.5 text-sm text-foreground sm:w-52"
+          className="h-11 rounded-lg border border-input bg-card px-2.5 text-base text-foreground sm:h-10 sm:w-52 sm:text-sm"
         >
           {sorts.map((option) => (
             <option key={option.id} value={option.id}>

@@ -100,12 +100,12 @@ export function WishlistItemPicker({
                   return name ? [{ id, name }] : [];
                 });
                 return (
-                  <label key={goal.id} className="flex items-center gap-2 text-sm">
+                  <label key={goal.id} className="flex min-h-11 items-center gap-3 py-1 text-base sm:text-sm">
                     <input
                       type="checkbox"
                       name="goal_ids"
                       value={goal.id}
-                      className="size-4"
+                      className="size-5 shrink-0"
                       checked={checked}
                       disabled={!checked && full}
                       onChange={(event) => toggle(goal.id, event.target.checked)}
