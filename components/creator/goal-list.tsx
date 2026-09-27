@@ -19,6 +19,16 @@ export function GoalList({ goals, paypalLink }: { goals: Goal[]; paypalLink: str
         const support = supportLink(goal.link, paypalLink);
         return (
           <article key={goal.id} className="rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
+            {goal.image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={goal.image_url}
+                alt=""
+                width={goal.image_width ?? undefined}
+                height={goal.image_height ?? undefined}
+                className="mb-3 h-44 w-full rounded-xl bg-muted object-contain"
+              />
+            ) : null}
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="font-heading text-2xl leading-tight">{goal.title}</h3>

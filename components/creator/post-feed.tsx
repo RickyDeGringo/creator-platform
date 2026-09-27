@@ -1,11 +1,22 @@
+import { PostComments } from "@/components/creator/post-comments";
 import { PostGallery } from "@/components/creator/post-gallery";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatMoney, httpsUrl, progressPercent, supportLink } from "@/lib/format";
-import type { FeedPost } from "@/lib/types";
+import type { CommentAccess, FeedPost } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export function PostFeed({ posts, paypalLink }: { posts: FeedPost[]; paypalLink: string | null }) {
+export function PostFeed({
+  posts,
+  paypalLink,
+  slug,
+  access,
+}: {
+  posts: FeedPost[];
+  paypalLink: string | null;
+  slug: string;
+  access: CommentAccess;
+}) {
   const subscribeHref = httpsUrl(paypalLink);
   const eagerId = posts.find((post) => !post.is_locked && post.images.length > 0)?.id;
 
@@ -66,6 +77,16 @@ export function PostFeed({ posts, paypalLink }: { posts: FeedPost[]; paypalLink:
                       key={goal.id}
                       className="flex flex-col gap-3 rounded-xl bg-muted/70 p-3 sm:flex-row sm:items-center"
                     >
+                      {goal.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={goal.image.url}
+                          alt=""
+                          width={goal.image.width ?? undefined}
+                          height={goal.image.height ?? undefined}
+                          className="size-14 shrink-0 rounded-lg bg-background object-contain"
+                        />
+                      ) : null}
                       <div className="min-w-0 grow">
                         <p className="truncate text-sm font-medium">{goal.title}</p>
                         <p className="text-xs text-muted-foreground">
@@ -97,6 +118,7 @@ export function PostFeed({ posts, paypalLink }: { posts: FeedPost[]; paypalLink:
                 })}
               </ul>
             ) : null}
+            <PostComments slug={slug} postId={post.id} comments={post.comments} access={access} />
           </article>
         ),
       )}

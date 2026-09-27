@@ -9,7 +9,7 @@ import { SetupNotice } from "@/components/setup-notice";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/env";
-import { toAccessCode, toGoal, toManagedPost, toPage, toRole } from "@/lib/rows";
+import { toAccessCode, toCoverImage, toGoal, toManagedPost, toPage, toRole } from "@/lib/rows";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/viewer";
 
@@ -64,7 +64,7 @@ export default async function DashboardSlugPage({ params }: Props) {
     );
   }
 
-  const [postsResult, goalsResult, codesResult] = await Promise.all([
+  const [postsResult, goalsResult, coversResult, codesResult] = await Promise.all([
     supabase
       .from("posts")
       .select(
@@ -74,9 +74,16 @@ export default async function DashboardSlugPage({ params }: Props) {
       .order("created_at", { ascending: false }),
     supabase
       .from("goals")
-      .select("id, page_id, title, description, link, target_amount, current_amount_raised, created_at")
+      .select(
+        "id, page_id, title, description, link, image_url, image_storage_path, image_width, image_height, target_amount, current_amount_raised, created_at",
+      )
       .eq("page_id", page.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("cover_images")
+      .select("id, url, storage_path, width, height, sort_order")
+      .eq("page_id", page.id)
+      .order("sort_order"),
     supabase
       .from("access_codes")
       .select("id, page_id, code_string, duration_days, is_redeemed, redeemed_by_user, created_at")
@@ -114,15 +121,24 @@ export default async function DashboardSlugPage({ params }: Props) {
         </a>
       </nav>
 
-      {postsResult.error || goalsResult.error || codesResult.error ? (
+      {postsResult.error || goalsResult.error || coversResult.error || codesResult.error ? (
         <p className="mt-6 text-sm text-destructive">
-          {postsResult.error?.message ?? goalsResult.error?.message ?? codesResult.error?.message}
+          {postsResult.error?.message ??
+            goalsResult.error?.message ??
+            coversResult.error?.message ??
+            codesResult.error?.message}
         </p>
       ) : null}
 
       <section id="details" className="mt-10 space-y-4">
         <h2 className="font-heading text-3xl">Details</h2>
-        <PageDetailsForm page={page} />
+        <PageDetailsForm
+          page={page}
+          covers={(coversResult.data ?? []).flatMap((row) => {
+            const cover = toCoverImage(row);
+            return cover ? [cover] : [];
+          })}
+        />
       </section>
 
       <section id="posts" className="mt-12 space-y-4">

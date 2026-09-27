@@ -29,9 +29,21 @@ export type Goal = {
   title: string;
   description: string | null;
   link: string | null;
+  image_url: string | null;
+  image_storage_path: string | null;
+  image_width: number | null;
+  image_height: number | null;
   target_amount: number | string;
   current_amount_raised: number | string;
   created_at: string;
+};
+
+export type CoverImage = {
+  id: string;
+  url: string;
+  storage_path: string | null;
+  width: number | null;
+  height: number | null;
 };
 
 export type PostImage = {
@@ -40,10 +52,47 @@ export type PostImage = {
   height: number | null;
 };
 
+export type CommentAuthor = {
+  id: string;
+  username: string;
+  tiktok: string | null;
+  facebook: string | null;
+  x: string | null;
+  instagram: string | null;
+};
+
+export type PostComment = {
+  id: string;
+  body: string;
+  created_at: string;
+  author: CommentAuthor;
+  replies: {
+    id: string;
+    body: string;
+    created_at: string;
+    author: CommentAuthor;
+  }[];
+};
+
+export type CommentAccess = {
+  signedIn: boolean;
+  following: boolean;
+  member: boolean;
+  viewerId: string | null;
+};
+
+export type SocialProfiles = {
+  tiktok: string | null;
+  facebook: string | null;
+  x: string | null;
+  instagram: string | null;
+};
+
 export type PostGoal = {
   id: string;
   title: string;
   link: string | null;
+  image: PostImage | null;
   target_amount: number | string;
   current_amount_raised: number | string;
 };
@@ -55,6 +104,7 @@ export type FeedPost = {
   image_url: string | null;
   images: PostImage[];
   goals: PostGoal[];
+  comments: PostComment[];
   is_paywalled: boolean;
   is_locked: boolean;
   created_at: string;

@@ -17,6 +17,10 @@ const goals: Goal[] = [
     title: "New saddle",
     description: "The current one is done after this season.",
     link: "https://example.com/saddle",
+    image_url: null,
+    image_storage_path: null,
+    image_width: null,
+    image_height: null,
     target_amount: 180,
     current_amount_raised: 45,
     created_at: "2026-09-01T00:00:00.000Z",
@@ -27,6 +31,10 @@ const goals: Goal[] = [
     title: "New bell",
     description: null,
     link: "https://example.com/bell",
+    image_url: null,
+    image_storage_path: null,
+    image_width: null,
+    image_height: null,
     target_amount: 25,
     current_amount_raised: 10,
     created_at: "2026-09-02T00:00:00.000Z",
@@ -45,6 +53,7 @@ const posts: FeedPost[] = [
         id: "goal-1",
         title: "New saddle",
         link: "https://example.com/saddle",
+        image: null,
         target_amount: 180,
         current_amount_raised: 45,
       },
@@ -52,8 +61,39 @@ const posts: FeedPost[] = [
         id: "goal-2",
         title: "New bell",
         link: "https://example.com/bell",
+        image: null,
         target_amount: 25,
         current_amount_raised: 10,
+      },
+    ],
+    comments: [
+      {
+        id: "comment-1",
+        body: "That descent looked freezing.",
+        created_at: "2026-09-20T12:00:00.000Z",
+        author: {
+          id: "user-1",
+          username: "rider",
+          tiktok: "https://www.tiktok.com/@rider",
+          facebook: null,
+          x: "https://x.com/rider",
+          instagram: "https://www.instagram.com/rider",
+        },
+        replies: [
+          {
+            id: "comment-2",
+            body: "It was. The bell did not survive.",
+            created_at: "2026-09-20T13:00:00.000Z",
+            author: {
+              id: "user-2",
+              username: "nova",
+              tiktok: null,
+              facebook: "https://www.facebook.com/nova",
+              x: null,
+              instagram: null,
+            },
+          },
+        ],
       },
     ],
     is_paywalled: false,
@@ -67,6 +107,7 @@ const posts: FeedPost[] = [
     image_url: null,
     images: [],
     goals: [],
+    comments: [],
     is_paywalled: true,
     is_locked: true,
     created_at: "2026-09-22T00:00:00.000Z",
@@ -111,11 +152,12 @@ export default function PreviewPage() {
         pageId="page-1"
         displayName="Nova Live"
         bio="Nightly TikTok lives, backstage notes, and the gear fund."
-        coverImage={null}
+        covers={[]}
         paypalLink="https://www.paypal.com/paypalme"
         followerCount={128}
         isFollowing={false}
         signedIn={false}
+        commentAccess={{ signedIn: false, following: false, member: false, viewerId: null }}
         goals={goals}
         posts={posts}
         notice={null}

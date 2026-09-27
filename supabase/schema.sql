@@ -40,10 +40,26 @@ create table public.users (
   id uuid primary key references auth.users (id) on delete cascade,
   username text not null,
   avatar_url text,
+  tiktok_url text,
+  facebook_url text,
+  x_url text,
+  instagram_url text,
   is_superadmin boolean not null default false,
   created_at timestamptz not null default now(),
   constraint users_username_format check (username ~ '^[a-z0-9_]{3,30}$'),
-  constraint users_username_unique unique (username)
+  constraint users_username_unique unique (username),
+  constraint users_tiktok_https check (
+    tiktok_url is null or (tiktok_url ~ '^https://' and char_length(tiktok_url) <= 200)
+  ),
+  constraint users_facebook_https check (
+    facebook_url is null or (facebook_url ~ '^https://' and char_length(facebook_url) <= 200)
+  ),
+  constraint users_x_https check (
+    x_url is null or (x_url ~ '^https://' and char_length(x_url) <= 200)
+  ),
+  constraint users_instagram_https check (
+    instagram_url is null or (instagram_url ~ '^https://' and char_length(instagram_url) <= 200)
+  )
 );
 
 create table public.creator_pages (
@@ -97,6 +113,17 @@ create table public.posts (
   )
 );
 
+create table public.comments (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts (id) on delete cascade,
+  page_id uuid not null references public.creator_pages (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
+  parent_id uuid references public.comments (id) on delete cascade,
+  body text not null,
+  created_at timestamptz not null default now(),
+  constraint comments_body_length check (char_length(trim(body)) between 1 and 1000)
+);
+
 create table public.access_codes (
   id uuid primary key default gen_random_uuid(),
   page_id uuid not null references public.creator_pages (id) on delete cascade,
@@ -120,6 +147,10 @@ create table public.goals (
   title text not null,
   description text,
   link text,
+  image_url text,
+  image_storage_path text,
+  image_width integer,
+  image_height integer,
   target_amount numeric(12, 2) not null,
   current_amount_raised numeric(12, 2) not null default 0,
   created_at timestamptz not null default now(),
@@ -128,6 +159,38 @@ create table public.goals (
   constraint goals_raised_nonnegative check (current_amount_raised >= 0),
   constraint goals_link_https check (
     link is null or (link ~ '^https://' and char_length(link) <= 2000)
+  ),
+  constraint goals_image_https check (
+    image_url is null or (image_url ~ '^https://' and char_length(image_url) <= 2000)
+  ),
+  constraint goals_image_dimensions check (
+    (image_width is null and image_height is null)
+    or (image_width between 1 and 4000 and image_height between 1 and 4000)
+  ),
+  constraint goals_image_path_shape check (
+    image_storage_path is null
+    or image_storage_path ~ '^[0-9a-f-]{36}/goals/[0-9a-f-]{36}\.webp$'
+  )
+);
+
+create table public.cover_images (
+  id uuid primary key default gen_random_uuid(),
+  page_id uuid not null references public.creator_pages (id) on delete cascade,
+  url text not null,
+  storage_path text,
+  width integer,
+  height integer,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  constraint cover_images_url_https check (url ~ '^https://' and char_length(url) <= 2000),
+  constraint cover_images_dimensions check (
+    (width is null and height is null)
+    or (width between 1 and 4000 and height between 1 and 4000)
+  ),
+  constraint cover_images_sort check (sort_order between 0 and 4),
+  constraint cover_images_path_shape check (
+    storage_path is null
+    or storage_path ~ '^[0-9a-f-]{36}/cover/[0-9a-f-]{36}\.webp$'
   )
 );
 
@@ -168,8 +231,11 @@ create index posts_page_created_idx on public.posts (page_id, created_at desc);
 create index goals_page_created_idx on public.goals (page_id, created_at desc);
 create index access_codes_page_created_idx on public.access_codes (page_id, created_at desc);
 create index post_images_post_idx on public.post_images (post_id, sort_order);
+create index cover_images_page_idx on public.cover_images (page_id, sort_order);
 create index post_goals_post_idx on public.post_goals (post_id, sort_order);
 create index post_goals_goal_idx on public.post_goals (goal_id);
+create index comments_post_idx on public.comments (post_id, created_at);
+create index comments_page_idx on public.comments (page_id, created_at);
 
 -- ---------------------------------------------------------------------------
 -- Private helpers. Not exposed by the Data API (schema is not public).
@@ -487,8 +553,110 @@ create trigger post_goals_guard
   before insert on public.post_goals
   for each row execute function private.guard_post_goal();
 
+create or replace function private.guard_cover_image()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_catalog
+as $$
+declare
+  v_count integer;
+begin
+  if new.storage_path is not null
+     and new.storage_path !~ ('^' || new.page_id::text || '/cover/[0-9a-f-]{36}\.webp$') then
+    raise exception 'invalid_image_path' using errcode = '42501';
+  end if;
+
+  select count(*) into v_count
+  from public.cover_images
+  where page_id = new.page_id;
+
+  if v_count >= 5 then
+    raise exception 'too_many_covers' using errcode = '54000';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger cover_images_guard
+  before insert on public.cover_images
+  for each row execute function private.guard_cover_image();
+
 revoke all on function private.guard_post_image() from public, anon, authenticated;
 revoke all on function private.guard_post_goal() from public, anon, authenticated;
+revoke all on function private.guard_cover_image() from public, anon, authenticated;
+
+create or replace function private.guard_comment()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, private, pg_catalog
+as $$
+declare
+  v_paywalled boolean;
+  v_parent_post uuid;
+  v_parent_parent uuid;
+  v_count integer;
+begin
+  if auth.uid() is null then
+    raise exception 'not_authenticated' using errcode = '28000';
+  end if;
+
+  new.user_id := auth.uid();
+  new.body := trim(new.body);
+
+  select p.page_id, p.is_paywalled
+  into new.page_id, v_paywalled
+  from public.posts p
+  where p.id = new.post_id;
+
+  if new.page_id is null then
+    raise exception 'post_locked' using errcode = '42501';
+  end if;
+
+  if not private.is_page_member(new.page_id, null)
+     and not exists (
+       select 1
+       from public.followers f
+       where f.page_id = new.page_id
+         and f.user_id = auth.uid()
+     ) then
+    raise exception 'not_following' using errcode = '42501';
+  end if;
+
+  if v_paywalled and not private.viewer_has_page_access(new.page_id) then
+    raise exception 'post_locked' using errcode = '42501';
+  end if;
+
+  if new.parent_id is not null then
+    select c.post_id, c.parent_id
+    into v_parent_post, v_parent_parent
+    from public.comments c
+    where c.id = new.parent_id;
+
+    if v_parent_post is null or v_parent_post <> new.post_id or v_parent_parent is not null then
+      raise exception 'comment_thread' using errcode = '42501';
+    end if;
+  end if;
+
+  select count(*) into v_count
+  from public.comments
+  where post_id = new.post_id;
+
+  if v_count >= 300 then
+    raise exception 'too_many_comments' using errcode = '54000';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger comments_guard
+  before insert on public.comments
+  for each row execute function private.guard_comment();
+
+revoke all on function private.guard_comment() from public, anon, authenticated;
 
 create or replace function private.storage_page_id(object_name text)
 returns uuid
@@ -574,6 +742,9 @@ as $$
               'id', g.id,
               'title', g.title,
               'link', g.link,
+              'image_url', g.image_url,
+              'image_width', g.image_width,
+              'image_height', g.image_height,
               'target_amount', g.target_amount,
               'current_amount_raised', g.current_amount_raised
             )
@@ -744,7 +915,9 @@ alter table public.posts enable row level security;
 alter table public.access_codes enable row level security;
 alter table public.goals enable row level security;
 alter table public.post_images enable row level security;
+alter table public.cover_images enable row level security;
 alter table public.post_goals enable row level security;
+alter table public.comments enable row level security;
 
 create policy users_select_public
   on public.users
@@ -866,6 +1039,68 @@ create policy posts_delete_staff
   to authenticated
   using (private.is_page_member(page_id, array['owner', 'manager']::public.page_role[]));
 
+create policy comments_select_visible
+  on public.comments
+  for select
+  to anon, authenticated
+  using (
+    exists (
+      select 1
+      from public.posts p
+      where p.id = post_id
+        and (
+          p.is_paywalled = false
+          or private.viewer_has_page_access(p.page_id)
+        )
+    )
+  );
+
+create policy comments_insert_follower
+  on public.comments
+  for insert
+  to authenticated
+  with check (
+    user_id = auth.uid()
+    and exists (
+      select 1
+      from public.posts p
+      where p.id = post_id
+        and p.page_id = page_id
+        and (
+          private.is_page_member(p.page_id, null)
+          or exists (
+            select 1
+            from public.followers f
+            where f.page_id = p.page_id
+              and f.user_id = auth.uid()
+          )
+        )
+        and (
+          p.is_paywalled = false
+          or private.viewer_has_page_access(p.page_id)
+        )
+    )
+    and (
+      parent_id is null
+      or exists (
+        select 1
+        from public.comments parent
+        where parent.id = parent_id
+          and parent.post_id = post_id
+          and parent.parent_id is null
+      )
+    )
+  );
+
+create policy comments_delete_author_or_staff
+  on public.comments
+  for delete
+  to authenticated
+  using (
+    user_id = auth.uid()
+    or private.is_page_member(page_id, array['owner', 'manager']::public.page_role[])
+  );
+
 create policy subscriptions_select_own_or_staff
   on public.subscriptions
   for select
@@ -911,6 +1146,24 @@ create policy goals_update_staff
 
 create policy goals_delete_staff
   on public.goals
+  for delete
+  to authenticated
+  using (private.is_page_member(page_id, array['owner', 'manager']::public.page_role[]));
+
+create policy cover_images_select_public
+  on public.cover_images
+  for select
+  to anon, authenticated
+  using (true);
+
+create policy cover_images_insert_staff
+  on public.cover_images
+  for insert
+  to authenticated
+  with check (private.is_page_member(page_id, array['owner', 'manager']::public.page_role[]));
+
+create policy cover_images_delete_staff
+  on public.cover_images
   for delete
   to authenticated
   using (private.is_page_member(page_id, array['owner', 'manager']::public.page_role[]));
@@ -991,7 +1244,7 @@ create policy post_goals_delete_staff
 
 grant select on public.users to anon, authenticated;
 grant insert (id, username, avatar_url) on public.users to authenticated;
-grant update (username, avatar_url) on public.users to authenticated;
+grant update (username, avatar_url, tiktok_url, facebook_url, x_url, instagram_url) on public.users to authenticated;
 
 grant select on public.creator_pages to anon, authenticated;
 grant insert, update, delete on public.creator_pages to authenticated;
@@ -1000,6 +1253,9 @@ grant select, insert, delete on public.page_members to authenticated;
 
 grant select on public.followers to anon, authenticated;
 grant insert, delete on public.followers to authenticated;
+
+grant select on public.comments to anon, authenticated;
+grant insert, delete on public.comments to authenticated;
 
 grant select on public.posts to anon, authenticated;
 grant insert, update, delete on public.posts to authenticated;
@@ -1010,6 +1266,9 @@ grant select on public.subscriptions to authenticated;
 
 grant select on public.goals to anon, authenticated;
 grant insert, update, delete on public.goals to authenticated;
+
+grant select on public.cover_images to anon, authenticated;
+grant insert, delete on public.cover_images to authenticated;
 
 grant select on public.post_images to anon, authenticated;
 grant insert, delete on public.post_images to authenticated;

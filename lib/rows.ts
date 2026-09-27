@@ -1,11 +1,13 @@
 import { httpsUrl } from "@/lib/format";
 import type {
   AccessCode,
+  CoverImage,
   CreatorPage,
   FeedPost,
   Goal,
   ManagedPost,
   PageRole,
+  PostComment,
   PostGoal,
   PostImage,
 } from "@/lib/types";
@@ -35,6 +37,10 @@ export function toGoal(value: unknown): Goal {
     title: String(row.title),
     description: row.description == null ? null : String(row.description),
     link: httpsUrl(row.link == null ? null : String(row.link)),
+    image_url: httpsUrl(row.image_url == null ? null : String(row.image_url)),
+    image_storage_path: row.image_storage_path == null ? null : String(row.image_storage_path),
+    image_width: positiveInt(row.image_width),
+    image_height: positiveInt(row.image_height),
     target_amount: row.target_amount as number | string,
     current_amount_raised: row.current_amount_raised as number | string,
     created_at: String(row.created_at),
@@ -45,6 +51,20 @@ function positiveInt(value: unknown) {
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isInteger(n) || n <= 0 || n > 4000) return null;
   return n;
+}
+
+export function toCoverImage(value: unknown): CoverImage | null {
+  const image = toPostImage(value);
+  if (!image) return null;
+  const row = record(value);
+  if (row.id == null) return null;
+  return {
+    id: String(row.id),
+    url: image.url,
+    storage_path: row.storage_path == null ? null : String(row.storage_path),
+    width: image.width,
+    height: image.height,
+  };
 }
 
 export function toPostImage(value: unknown): PostImage | null {
@@ -69,6 +89,11 @@ export function toPostGoal(value: unknown): PostGoal | null {
     id: String(row.id),
     title: String(row.title),
     link: httpsUrl(row.link == null ? null : String(row.link)),
+    image: toPostImage({
+      url: row.image_url,
+      width: row.image_width,
+      height: row.image_height,
+    }),
     target_amount: (row.target_amount ?? 0) as number | string,
     current_amount_raised: (row.current_amount_raised ?? 0) as number | string,
   };
@@ -113,6 +138,7 @@ export function toFeedPost(value: unknown): FeedPost {
     image_url: imageUrl,
     images: imagesFromRow(row),
     goals: goalsFromRow(row),
+    comments: [],
     is_paywalled: Boolean(row.is_paywalled),
     is_locked: Boolean(row.is_locked),
     created_at: String(row.created_at),
@@ -144,6 +170,58 @@ export function toAccessCode(value: unknown): AccessCode {
     redeemed_by_user: row.redeemed_by_user == null ? null : String(row.redeemed_by_user),
     created_at: String(row.created_at),
   };
+}
+
+function authorFrom(row: Record<string, unknown>) {
+  const embedded = row.author ?? row.users;
+  const user = Array.isArray(embedded) ? embedded[0] : embedded;
+  if (!user || typeof user !== "object") return null;
+  const profile = record(user);
+  if (profile.username == null) return null;
+  return {
+    id: String(row.user_id ?? ""),
+    username: String(profile.username),
+    tiktok: httpsUrl(profile.tiktok_url == null ? null : String(profile.tiktok_url)),
+    facebook: httpsUrl(profile.facebook_url == null ? null : String(profile.facebook_url)),
+    x: httpsUrl(profile.x_url == null ? null : String(profile.x_url)),
+    instagram: httpsUrl(profile.instagram_url == null ? null : String(profile.instagram_url)),
+  };
+}
+
+export function commentThreads(rows: unknown[], postId: string): PostComment[] {
+  const flat = rows.flatMap((row) => {
+    if (!row || typeof row !== "object") return [];
+    const recordRow = record(row);
+    if (String(recordRow.post_id) !== postId) return [];
+    const author = authorFrom(recordRow);
+    if (!author || recordRow.id == null || recordRow.body == null) return [];
+    return [
+      {
+        id: String(recordRow.id),
+        parentId: recordRow.parent_id == null ? null : String(recordRow.parent_id),
+        body: String(recordRow.body),
+        createdAt: String(recordRow.created_at ?? ""),
+        author,
+      },
+    ];
+  });
+
+  return flat
+    .filter((comment) => comment.parentId == null)
+    .map((comment) => ({
+      id: comment.id,
+      body: comment.body,
+      created_at: comment.createdAt,
+      author: comment.author,
+      replies: flat
+        .filter((reply) => reply.parentId === comment.id)
+        .map((reply) => ({
+          id: reply.id,
+          body: reply.body,
+          created_at: reply.createdAt,
+          author: reply.author,
+        })),
+    }));
 }
 
 export function toRole(value: unknown): PageRole | null {

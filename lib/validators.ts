@@ -71,6 +71,12 @@ export function friendlyDbError(message: string) {
     return "Your profile is not ready yet. Apply supabase/schema.sql, then sign up again.";
   }
   if (message.includes("too_many_images")) return "A post can show 5 images.";
+  if (message.includes("too_many_covers")) return "A cover can show 5 images.";
+  if (message.includes("too_many_comments")) return "This post has as many comments as it can hold.";
+  if (message.includes("not_following")) return "Follow this creator to comment.";
+  if (message.includes("post_locked")) return "Subscribe to comment on this post.";
+  if (message.includes("comment_thread")) return "Reply to the original comment.";
+  if (message.includes("comment_length")) return "Comments can be up to 1000 characters.";
   if (message.includes("too_many_goals")) return "Attach up to 6 goals.";
   if (message.includes("goal_page_mismatch")) return "Choose goals from this page.";
   if (message.includes("image_page_mismatch") || message.includes("invalid_image_path")) {

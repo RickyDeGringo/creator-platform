@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { createGoal, deleteGoal, updateGoal } from "@/app/actions/goals";
 import { FormMessage } from "@/components/form-message";
+import { PhotoField, type PhotoFieldHandle } from "@/components/dashboard/photo-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,8 +12,10 @@ import { asNumber, formatMoney } from "@/lib/format";
 import type { Goal } from "@/lib/types";
 
 function GoalEditor({ slug, goal }: { slug: string; goal: Goal }) {
-  const [state, action] = useActionState(updateGoal.bind(null, slug, goal.id), null);
+  const [state, action, pending] = useActionState(updateGoal.bind(null, slug, goal.id), null);
   const [deleteState, deleteAction] = useActionState(deleteGoal.bind(null, slug), null);
+  const [preparing, setPreparing] = useState(false);
+  const photosRef = useRef<PhotoFieldHandle>(null);
 
   return (
     <article className="space-y-3 rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
@@ -22,7 +25,37 @@ function GoalEditor({ slug, goal }: { slug: string; goal: Goal }) {
           {formatMoney(goal.current_amount_raised)} of {formatMoney(goal.target_amount)}
         </p>
       </div>
-      <form action={action} className="grid gap-3">
+      <form
+        action={(formData) => {
+          for (const file of photosRef.current?.files ?? []) formData.append("photos", file);
+          action(formData);
+        }}
+        className="grid gap-3"
+      >
+        {goal.image_url ? (
+          <div className="flex items-end gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={goal.image_url}
+              alt=""
+              className="h-24 w-auto max-w-40 rounded-lg bg-muted object-contain"
+            />
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="remove_image" className="size-4" />
+              Remove photo
+            </label>
+          </div>
+        ) : null}
+        <PhotoField
+          id={`goal-photo-${goal.id}`}
+          label="Photo"
+          hint="One photo of the thing. It stays in proportion."
+          max={1}
+          multiple={false}
+          revision={state}
+          onPreparing={setPreparing}
+          fieldRef={photosRef}
+        />
         <div className="space-y-2">
           <Label htmlFor={`link-${goal.id}`}>Shop or support link</Label>
           <Input
@@ -47,7 +80,9 @@ function GoalEditor({ slug, goal }: { slug: string; goal: Goal }) {
               className="h-10"
             />
           </div>
-          <Button type="submit">Save</Button>
+          <Button type="submit" disabled={pending || preparing}>
+            {pending ? "Saving…" : "Save"}
+          </Button>
         </div>
       </form>
       <FormMessage state={state} />
@@ -70,8 +105,10 @@ function GoalEditor({ slug, goal }: { slug: string; goal: Goal }) {
 }
 
 export function GoalManager({ slug, goals }: { slug: string; goals: Goal[] }) {
-  const [state, action] = useActionState(createGoal.bind(null, slug), null);
+  const [state, action, pending] = useActionState(createGoal.bind(null, slug), null);
+  const [preparing, setPreparing] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const photosRef = useRef<PhotoFieldHandle>(null);
 
   useEffect(() => {
     if (state?.success) formRef.current?.reset();
@@ -79,7 +116,14 @@ export function GoalManager({ slug, goals }: { slug: string; goals: Goal[] }) {
 
   return (
     <div className="space-y-6">
-      <form ref={formRef} action={action} className="space-y-4 rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
+      <form
+        ref={formRef}
+        action={(formData) => {
+          for (const file of photosRef.current?.files ?? []) formData.append("photos", file);
+          action(formData);
+        }}
+        className="space-y-4 rounded-2xl bg-card p-4 ring-1 ring-foreground/10"
+      >
         <div className="space-y-2">
           <Label htmlFor="title">Goal title</Label>
           <Input id="title" name="title" required maxLength={120} className="h-10" />
@@ -103,16 +147,32 @@ export function GoalManager({ slug, goals }: { slug: string; goals: Goal[] }) {
             Optional. People use this link to buy the thing or chip in. Leave it blank to use the page payment link.
           </p>
         </div>
+        <PhotoField
+          id="goal-photo"
+          label="Photo"
+          hint="One photo of the thing. It stays in proportion."
+          max={1}
+          multiple={false}
+          revision={state}
+          onPreparing={setPreparing}
+          fieldRef={photosRef}
+        />
         <div className="space-y-2">
           <Label htmlFor="target_amount">Target amount (USD)</Label>
           <Input id="target_amount" name="target_amount" inputMode="decimal" required placeholder="250.00" className="h-10" />
         </div>
         <FormMessage state={state} />
-        <Button type="submit">Create goal</Button>
+        <Button type="submit" disabled={pending || preparing}>
+          {pending ? "Creating…" : "Create goal"}
+        </Button>
       </form>
       <div className="grid gap-3">
         {goals.map((goal) => (
-          <GoalEditor key={`${goal.id}-${goal.current_amount_raised}-${goal.link ?? ""}`} slug={slug} goal={goal} />
+          <GoalEditor
+            key={`${goal.id}-${goal.current_amount_raised}-${goal.link ?? ""}-${goal.image_url ?? ""}`}
+            slug={slug}
+            goal={goal}
+          />
         ))}
       </div>
     </div>

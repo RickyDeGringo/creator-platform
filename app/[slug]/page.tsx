@@ -37,7 +37,7 @@ export default async function CreatorPage({ params, searchParams }: Props) {
     );
   }
 
-  const { page, goals, posts, followerCount, isFollowing, viewer } = result.data;
+  const { page, covers, goals, posts, followerCount, isFollowing, isMember, viewer } = result.data;
 
   return (
     <CreatorView
@@ -45,11 +45,17 @@ export default async function CreatorPage({ params, searchParams }: Props) {
       pageId={page.id}
       displayName={page.display_name}
       bio={page.bio}
-      coverImage={page.cover_image}
+      covers={covers}
       paypalLink={page.paypal_link}
       followerCount={followerCount}
       isFollowing={isFollowing}
       signedIn={Boolean(viewer)}
+      commentAccess={{
+        signedIn: Boolean(viewer),
+        following: isFollowing,
+        member: isMember,
+        viewerId: viewer?.id ?? null,
+      }}
       goals={goals}
       posts={posts}
       notice={error ?? null}
