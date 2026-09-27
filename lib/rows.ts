@@ -6,6 +6,7 @@ import type {
   FeedPost,
   Goal,
   ManagedPost,
+  WishlistCategory,
   PageRole,
   PostComment,
   PostGoal,
@@ -29,11 +30,24 @@ export function toPage(value: unknown): CreatorPage {
   };
 }
 
+export function toWishlistCategory(value: unknown): WishlistCategory | null {
+  const row = record(value);
+  const name = String(row.name ?? "").trim();
+  if (row.id == null || row.page_id == null || !name) return null;
+  return {
+    id: String(row.id),
+    page_id: String(row.page_id),
+    name,
+    created_at: String(row.created_at ?? ""),
+  };
+}
+
 export function toGoal(value: unknown): Goal {
   const row = record(value);
   return {
     id: String(row.id),
     page_id: String(row.page_id),
+    category_id: row.category_id == null || row.category_id === "" ? null : String(row.category_id),
     title: String(row.title),
     description: row.description == null ? null : String(row.description),
     link: httpsUrl(row.link == null ? null : String(row.link)),

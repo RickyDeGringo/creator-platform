@@ -23,9 +23,17 @@ export type CreatorPage = {
   created_at: string;
 };
 
+export type WishlistCategory = {
+  id: string;
+  page_id: string;
+  name: string;
+  created_at: string;
+};
+
 export type Goal = {
   id: string;
   page_id: string;
+  category_id: string | null;
   title: string;
   description: string | null;
   link: string | null;

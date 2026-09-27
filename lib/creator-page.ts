@@ -1,15 +1,16 @@
 import { cache } from "react";
 import { isSupabaseConfigured } from "@/lib/env";
 import { httpsUrl } from "@/lib/format";
-import { commentThreads, toFeedPost, toGoal, toPage, toPostImage } from "@/lib/rows";
+import { commentThreads, toFeedPost, toGoal, toPage, toPostImage, toWishlistCategory } from "@/lib/rows";
 import { createClient } from "@/lib/supabase/server";
-import type { CreatorPage, FeedPost, Goal, PostImage, Viewer } from "@/lib/types";
+import type { CreatorPage, FeedPost, Goal, PostImage, Viewer, WishlistCategory } from "@/lib/types";
 import { getViewer } from "@/lib/viewer";
 
 export type CreatorPageData = {
   page: CreatorPage;
   covers: PostImage[];
   goals: Goal[];
+  categories: WishlistCategory[];
   posts: FeedPost[];
   followerCount: number;
   isFollowing: boolean;
@@ -49,15 +50,20 @@ export const loadCreatorPage = cache(async (slug: string): Promise<LoadCreatorRe
   const page = toPage(pageRow);
   const viewer = await getViewer();
 
-  const [goalsResult, coversResult, feedResult, commentsResult, countResult, followResult, memberResult] =
+  const [goalsResult, categoriesResult, coversResult, feedResult, commentsResult, countResult, followResult, memberResult] =
     await Promise.all([
     supabase
       .from("goals")
       .select(
-        "id, page_id, title, description, link, image_url, image_width, image_height, target_amount, current_amount_raised, created_at",
+        "id, page_id, category_id, title, description, link, image_url, image_width, image_height, target_amount, current_amount_raised, created_at",
       )
       .eq("page_id", page.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("wishlist_categories")
+      .select("id, page_id, name, created_at")
+      .eq("page_id", page.id)
+      .order("name"),
     supabase
       .from("cover_images")
       .select("url, width, height, sort_order")
@@ -94,6 +100,7 @@ export const loadCreatorPage = cache(async (slug: string): Promise<LoadCreatorRe
   ]);
 
   if (goalsResult.error) return { status: "error", message: goalsResult.error.message };
+  if (categoriesResult.error) return { status: "error", message: categoriesResult.error.message };
   if (coversResult.error) return { status: "error", message: coversResult.error.message };
   if (feedResult.error) return { status: "error", message: feedResult.error.message };
   if (commentsResult.error) return { status: "error", message: commentsResult.error.message };
@@ -107,6 +114,10 @@ export const loadCreatorPage = cache(async (slug: string): Promise<LoadCreatorRe
       page,
       covers: coverImages(page.cover_image, coversResult.data ?? []),
       goals: (goalsResult.data ?? []).map(toGoal),
+      categories: (categoriesResult.data ?? []).flatMap((row) => {
+        const category = toWishlistCategory(row);
+        return category ? [category] : [];
+      }),
       posts: (feedResult.data ?? []).map((row: unknown) => {
         const post = toFeedPost(row);
         if (post.is_locked) return post;

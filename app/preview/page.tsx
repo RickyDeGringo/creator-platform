@@ -6,14 +6,30 @@ import { PostManager } from "@/components/dashboard/post-manager";
 import { CreatorView } from "@/components/creator/creator-view";
 import { RedeemForm } from "@/components/redeem-form";
 import { isSupabaseConfigured } from "@/lib/env";
-import type { AccessCode, FeedPost, Goal, ManagedPost } from "@/lib/types";
+import type { AccessCode, FeedPost, Goal, ManagedPost, WishlistCategory } from "@/lib/types";
 
 export const metadata: Metadata = { title: "UI preview" };
+
+const categories: WishlistCategory[] = [
+  {
+    id: "cat-gear",
+    page_id: "page-1",
+    name: "Gear",
+    created_at: "2026-08-01T00:00:00.000Z",
+  },
+  {
+    id: "cat-studio",
+    page_id: "page-1",
+    name: "Studio",
+    created_at: "2026-08-02T00:00:00.000Z",
+  },
+];
 
 const goals: Goal[] = [
   {
     id: "goal-1",
     page_id: "page-1",
+    category_id: "cat-gear",
     title: "New saddle",
     description: "The current one is done after this season.",
     link: "https://example.com/saddle",
@@ -28,6 +44,7 @@ const goals: Goal[] = [
   {
     id: "goal-2",
     page_id: "page-1",
+    category_id: null,
     title: "New bell",
     description: null,
     link: "https://example.com/bell",
@@ -159,6 +176,7 @@ export default function PreviewPage() {
         signedIn={false}
         commentAccess={{ signedIn: false, following: false, member: false, viewerId: null }}
         goals={goals}
+        categories={categories}
         posts={posts}
         notice={null}
       />
@@ -172,8 +190,8 @@ export default function PreviewPage() {
           <PostManager slug="preview" posts={managedPosts} goals={goals} />
         </section>
         <section className="space-y-4">
-          <h2 className="font-heading text-3xl">Goals</h2>
-          <GoalManager slug="preview" goals={goals} />
+          <h2 className="font-heading text-3xl">Wishlist</h2>
+          <GoalManager slug="preview" goals={goals} categories={categories} />
         </section>
         <section className="space-y-4">
           <h2 className="font-heading text-3xl">Access</h2>

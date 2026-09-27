@@ -1,9 +1,10 @@
 import { CoverBanner } from "@/components/creator/cover-banner";
+import { CreatorTabs } from "@/components/creator/creator-tabs";
 import { FollowButton } from "@/components/creator/follow-button";
-import { GoalList } from "@/components/creator/goal-list";
 import { PostFeed } from "@/components/creator/post-feed";
+import { WishlistBoard } from "@/components/creator/wishlist-board";
 import { formatFollowers } from "@/lib/format";
-import type { CommentAccess, FeedPost, Goal, PostImage } from "@/lib/types";
+import type { CommentAccess, FeedPost, Goal, PostImage, WishlistCategory } from "@/lib/types";
 
 export function CreatorView({
   slug,
@@ -17,6 +18,7 @@ export function CreatorView({
   signedIn,
   commentAccess,
   goals,
+  categories,
   posts,
   notice,
 }: {
@@ -31,6 +33,7 @@ export function CreatorView({
   signedIn: boolean;
   commentAccess: CommentAccess;
   goals: Goal[];
+  categories: WishlistCategory[];
   posts: FeedPost[];
   notice?: string | null;
 }) {
@@ -54,15 +57,10 @@ export function CreatorView({
           ) : null}
         </div>
 
-        <section className="mt-12">
-          <h2 className="mb-4 font-heading text-3xl">Goals</h2>
-          <GoalList goals={goals} paypalLink={paypalLink} />
-        </section>
-
-        <section className="mt-12">
-          <h2 className="mb-4 font-heading text-3xl">Posts</h2>
-          <PostFeed posts={posts} paypalLink={paypalLink} slug={slug} access={commentAccess} />
-        </section>
+        <CreatorTabs
+          wishlist={<WishlistBoard goals={goals} categories={categories} paypalLink={paypalLink} />}
+          posts={<PostFeed posts={posts} paypalLink={paypalLink} slug={slug} access={commentAccess} />}
+        />
       </div>
     </div>
   );

@@ -8,10 +8,48 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { WishlistCategories } from "@/components/dashboard/wishlist-categories";
 import { asNumber, formatMoney } from "@/lib/format";
-import type { Goal } from "@/lib/types";
+import type { Goal, WishlistCategory } from "@/lib/types";
 
-function GoalEditor({ slug, goal }: { slug: string; goal: Goal }) {
+function CategoryField({
+  id,
+  categories,
+  defaultValue,
+}: {
+  id: string;
+  categories: WishlistCategory[];
+  defaultValue?: string | null;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>Category</Label>
+      <select
+        id={id}
+        name="category_id"
+        defaultValue={defaultValue ?? ""}
+        className="h-10 w-full rounded-lg border border-input bg-card px-2.5 text-sm text-foreground"
+      >
+        <option value="">No category</option>
+        {categories.map((category) => (
+          <option key={category.id} value={category.id}>
+            {category.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function GoalEditor({
+  slug,
+  goal,
+  categories,
+}: {
+  slug: string;
+  goal: Goal;
+  categories: WishlistCategory[];
+}) {
   const [state, action, pending] = useActionState(updateGoal.bind(null, slug, goal.id), null);
   const [deleteState, deleteAction] = useActionState(deleteGoal.bind(null, slug), null);
   const [preparing, setPreparing] = useState(false);
@@ -23,6 +61,9 @@ function GoalEditor({ slug, goal }: { slug: string; goal: Goal }) {
         <h3 className="font-medium">{goal.title}</h3>
         <p className="text-sm text-muted-foreground">
           {formatMoney(goal.current_amount_raised)} of {formatMoney(goal.target_amount)}
+          {goal.category_id
+            ? ` · ${categories.find((category) => category.id === goal.category_id)?.name ?? "Uncategorized"}`
+            : ""}
         </p>
       </div>
       <form
@@ -56,6 +97,7 @@ function GoalEditor({ slug, goal }: { slug: string; goal: Goal }) {
           onPreparing={setPreparing}
           fieldRef={photosRef}
         />
+        <CategoryField id={`category-${goal.id}`} categories={categories} defaultValue={goal.category_id} />
         <div className="space-y-2">
           <Label htmlFor={`link-${goal.id}`}>Shop or support link</Label>
           <Input
@@ -104,7 +146,15 @@ function GoalEditor({ slug, goal }: { slug: string; goal: Goal }) {
   );
 }
 
-export function GoalManager({ slug, goals }: { slug: string; goals: Goal[] }) {
+export function GoalManager({
+  slug,
+  goals,
+  categories,
+}: {
+  slug: string;
+  goals: Goal[];
+  categories: WishlistCategory[];
+}) {
   const [state, action, pending] = useActionState(createGoal.bind(null, slug), null);
   const [preparing, setPreparing] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -116,6 +166,7 @@ export function GoalManager({ slug, goals }: { slug: string; goals: Goal[] }) {
 
   return (
     <div className="space-y-6">
+      <WishlistCategories slug={slug} categories={categories} />
       <form
         ref={formRef}
         action={(formData) => {
@@ -128,6 +179,7 @@ export function GoalManager({ slug, goals }: { slug: string; goals: Goal[] }) {
           <Label htmlFor="title">Goal title</Label>
           <Input id="title" name="title" required maxLength={120} className="h-10" />
         </div>
+        <CategoryField id="goal-category" categories={categories} />
         <div className="space-y-2">
           <Label htmlFor="description">Description</Label>
           <Textarea id="description" name="description" className="min-h-20" />
@@ -169,9 +221,10 @@ export function GoalManager({ slug, goals }: { slug: string; goals: Goal[] }) {
       <div className="grid gap-3">
         {goals.map((goal) => (
           <GoalEditor
-            key={`${goal.id}-${goal.current_amount_raised}-${goal.link ?? ""}-${goal.image_url ?? ""}`}
+            key={`${goal.id}-${goal.current_amount_raised}-${goal.link ?? ""}-${goal.image_url ?? ""}-${goal.category_id ?? ""}`}
             slug={slug}
             goal={goal}
+            categories={categories}
           />
         ))}
       </div>

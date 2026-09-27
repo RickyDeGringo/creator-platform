@@ -9,6 +9,29 @@ import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
 import { friendlyDbError, parseAmount } from "@/lib/validators";
 
+const CATEGORY_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function categoryForPage(
+  supabase: SupabaseClient,
+  pageId: string,
+  formData: FormData,
+): Promise<{ error: string } | { categoryId: string | null }> {
+  const raw = String(formData.get("category_id") ?? "").trim();
+  if (!raw) return { categoryId: null };
+  if (!CATEGORY_ID.test(raw)) return { error: "Choose a category from this page." };
+
+  const { data, error } = await supabase
+    .from("wishlist_categories")
+    .select("id")
+    .eq("id", raw)
+    .eq("page_id", pageId)
+    .maybeSingle();
+
+  if (error) return { error: friendlyDbError(error.message) };
+  if (!data) return { error: "Choose a category from this page." };
+  return { categoryId: raw };
+}
+
 function refresh(slug: string) {
   revalidatePath(`/${slug}`);
   revalidatePath(`/dashboard/${slug}`);
@@ -64,10 +87,14 @@ export async function createGoal(slug: string, _prev: ActionState, formData: For
   if (files.length > 1) return { error: "A goal can show one photo." };
 
   const supabase = await createClient();
+  const category = await categoryForPage(supabase, access.page.id, formData);
+  if ("error" in category) return { error: category.error };
+
   const { data: created, error } = await supabase
     .from("goals")
     .insert({
       page_id: access.page.id,
+      category_id: category.categoryId,
       title,
       description: description || null,
       link: linked.link,
@@ -131,17 +158,21 @@ export async function updateGoal(
   if (loadError) return { error: friendlyDbError(loadError.message) };
   if (!current) return { error: "That goal is not on this page." };
 
+  const category = await categoryForPage(supabase, access.page.id, formData);
+  if ("error" in category) return { error: category.error };
+
   const photo = await goalPhoto(supabase, access.page.id, formData, current.image_storage_path);
   if ("error" in photo) return { error: photo.error };
 
   const patch: {
     current_amount_raised: number;
     link: string | null;
+    category_id: string | null;
     image_url?: string | null;
     image_storage_path?: string | null;
     image_width?: number | null;
     image_height?: number | null;
-  } = { current_amount_raised: amount, link: linked.link };
+  } = { current_amount_raised: amount, link: linked.link, category_id: category.categoryId };
 
   if ("image" in photo) {
     patch.image_url = photo.image?.url ?? null;

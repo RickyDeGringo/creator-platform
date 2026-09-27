@@ -141,9 +141,18 @@ create table public.access_codes (
   )
 );
 
+create table public.wishlist_categories (
+  id uuid primary key default gen_random_uuid(),
+  page_id uuid not null references public.creator_pages (id) on delete cascade,
+  name text not null,
+  created_at timestamptz not null default now(),
+  constraint wishlist_categories_name_length check (char_length(trim(name)) between 1 and 40)
+);
+
 create table public.goals (
   id uuid primary key default gen_random_uuid(),
   page_id uuid not null references public.creator_pages (id) on delete cascade,
+  category_id uuid references public.wishlist_categories (id) on delete set null,
   title text not null,
   description text,
   link text,
@@ -228,7 +237,11 @@ create index page_members_user_idx on public.page_members (user_id);
 create index followers_user_idx on public.followers (user_id);
 create index subscriptions_user_idx on public.subscriptions (user_id);
 create index posts_page_created_idx on public.posts (page_id, created_at desc);
+create unique index wishlist_categories_page_name_key
+  on public.wishlist_categories (page_id, lower(name));
+create index wishlist_categories_page_idx on public.wishlist_categories (page_id, lower(name));
 create index goals_page_created_idx on public.goals (page_id, created_at desc);
+create index goals_category_idx on public.goals (category_id);
 create index access_codes_page_created_idx on public.access_codes (page_id, created_at desc);
 create index post_images_post_idx on public.post_images (post_id, sort_order);
 create index cover_images_page_idx on public.cover_images (page_id, sort_order);
@@ -479,6 +492,71 @@ create trigger posts_page_immutable
 create trigger goals_page_immutable
   before update on public.goals
   for each row execute function private.prevent_page_move();
+
+create or replace function private.guard_wishlist_category()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_catalog
+as $$
+declare
+  v_count integer;
+begin
+  new.name := regexp_replace(trim(new.name), '\s+', ' ', 'g');
+
+  if tg_op = 'INSERT' then
+    select count(*) into v_count
+    from public.wishlist_categories
+    where page_id = new.page_id;
+
+    if v_count >= 24 then
+      raise exception 'too_many_categories' using errcode = '54000';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function private.guard_wishlist_category() from public, anon, authenticated;
+
+create trigger wishlist_categories_guard
+  before insert or update on public.wishlist_categories
+  for each row execute function private.guard_wishlist_category();
+
+create trigger wishlist_categories_page_immutable
+  before update on public.wishlist_categories
+  for each row execute function private.prevent_page_move();
+
+create or replace function private.guard_goal_category()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_catalog
+as $$
+begin
+  if new.category_id is null then
+    return new;
+  end if;
+
+  if not exists (
+    select 1
+    from public.wishlist_categories c
+    where c.id = new.category_id
+      and c.page_id = new.page_id
+  ) then
+    raise exception 'category_page_mismatch' using errcode = '42501';
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function private.guard_goal_category() from public, anon, authenticated;
+
+create trigger goals_category_guard
+  before insert or update of category_id, page_id on public.goals
+  for each row execute function private.guard_goal_category();
 
 create or replace function private.guard_post_image()
 returns trigger
@@ -914,6 +992,7 @@ alter table public.subscriptions enable row level security;
 alter table public.posts enable row level security;
 alter table public.access_codes enable row level security;
 alter table public.goals enable row level security;
+alter table public.wishlist_categories enable row level security;
 alter table public.post_images enable row level security;
 alter table public.cover_images enable row level security;
 alter table public.post_goals enable row level security;
@@ -1150,6 +1229,31 @@ create policy goals_delete_staff
   to authenticated
   using (private.is_page_member(page_id, array['owner', 'manager']::public.page_role[]));
 
+create policy wishlist_categories_select_public
+  on public.wishlist_categories
+  for select
+  to anon, authenticated
+  using (true);
+
+create policy wishlist_categories_insert_staff
+  on public.wishlist_categories
+  for insert
+  to authenticated
+  with check (private.is_page_member(page_id, array['owner', 'manager']::public.page_role[]));
+
+create policy wishlist_categories_update_staff
+  on public.wishlist_categories
+  for update
+  to authenticated
+  using (private.is_page_member(page_id, array['owner', 'manager']::public.page_role[]))
+  with check (private.is_page_member(page_id, array['owner', 'manager']::public.page_role[]));
+
+create policy wishlist_categories_delete_staff
+  on public.wishlist_categories
+  for delete
+  to authenticated
+  using (private.is_page_member(page_id, array['owner', 'manager']::public.page_role[]));
+
 create policy cover_images_select_public
   on public.cover_images
   for select
@@ -1266,6 +1370,9 @@ grant select on public.subscriptions to authenticated;
 
 grant select on public.goals to anon, authenticated;
 grant insert, update, delete on public.goals to authenticated;
+
+grant select on public.wishlist_categories to anon, authenticated;
+grant insert, update, delete on public.wishlist_categories to authenticated;
 
 grant select on public.cover_images to anon, authenticated;
 grant insert, delete on public.cover_images to authenticated;

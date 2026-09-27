@@ -1,12 +1,21 @@
+import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { formatMoney, progressPercent, supportLink } from "@/lib/format";
 import type { Goal } from "@/lib/types";
 
-export function GoalList({ goals, paypalLink }: { goals: Goal[]; paypalLink: string | null }) {
+export function GoalList({
+  goals,
+  paypalLink,
+  categoryNames,
+}: {
+  goals: Goal[];
+  paypalLink: string | null;
+  categoryNames?: Record<string, string>;
+}) {
   const hasSupport = goals.some((goal) => supportLink(goal.link, paypalLink));
 
   if (goals.length === 0) {
-    return <p className="text-sm text-muted-foreground">No active goals yet.</p>;
+    return <p className="text-sm text-muted-foreground">Nothing on the wishlist yet.</p>;
   }
 
   return (
@@ -17,8 +26,14 @@ export function GoalList({ goals, paypalLink }: { goals: Goal[]; paypalLink: str
       {goals.map((goal) => {
         const pct = progressPercent(goal.current_amount_raised, goal.target_amount);
         const support = supportLink(goal.link, paypalLink);
+        const category = goal.category_id ? categoryNames?.[goal.category_id] : undefined;
         return (
           <article key={goal.id} className="rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
+            {category ? (
+              <Badge variant="secondary" className="mb-3">
+                {category}
+              </Badge>
+            ) : null}
             {goal.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img

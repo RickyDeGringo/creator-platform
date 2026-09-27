@@ -9,7 +9,7 @@ import { SetupNotice } from "@/components/setup-notice";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/env";
-import { toAccessCode, toCoverImage, toGoal, toManagedPost, toPage, toRole } from "@/lib/rows";
+import { toAccessCode, toCoverImage, toGoal, toManagedPost, toPage, toRole, toWishlistCategory } from "@/lib/rows";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/viewer";
 
@@ -64,7 +64,7 @@ export default async function DashboardSlugPage({ params }: Props) {
     );
   }
 
-  const [postsResult, goalsResult, coversResult, codesResult] = await Promise.all([
+  const [postsResult, goalsResult, categoriesResult, coversResult, codesResult] = await Promise.all([
     supabase
       .from("posts")
       .select(
@@ -75,10 +75,15 @@ export default async function DashboardSlugPage({ params }: Props) {
     supabase
       .from("goals")
       .select(
-        "id, page_id, title, description, link, image_url, image_storage_path, image_width, image_height, target_amount, current_amount_raised, created_at",
+        "id, page_id, category_id, title, description, link, image_url, image_storage_path, image_width, image_height, target_amount, current_amount_raised, created_at",
       )
       .eq("page_id", page.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("wishlist_categories")
+      .select("id, page_id, name, created_at")
+      .eq("page_id", page.id)
+      .order("name"),
     supabase
       .from("cover_images")
       .select("id, url, storage_path, width, height, sort_order")
@@ -113,18 +118,19 @@ export default async function DashboardSlugPage({ params }: Props) {
         <a href="#posts" className={buttonVariants({ variant: "ghost", size: "sm" })}>
           Posts
         </a>
-        <a href="#goals" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-          Goals
+        <a href="#wishlist" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+          Wishlist
         </a>
         <a href="#access" className={buttonVariants({ variant: "ghost", size: "sm" })}>
           Access
         </a>
       </nav>
 
-      {postsResult.error || goalsResult.error || coversResult.error || codesResult.error ? (
+      {postsResult.error || goalsResult.error || categoriesResult.error || coversResult.error || codesResult.error ? (
         <p className="mt-6 text-sm text-destructive">
           {postsResult.error?.message ??
             goalsResult.error?.message ??
+            categoriesResult.error?.message ??
             coversResult.error?.message ??
             codesResult.error?.message}
         </p>
@@ -150,9 +156,16 @@ export default async function DashboardSlugPage({ params }: Props) {
         />
       </section>
 
-      <section id="goals" className="mt-12 space-y-4">
-        <h2 className="font-heading text-3xl">Goals</h2>
-        <GoalManager slug={page.slug} goals={(goalsResult.data ?? []).map(toGoal)} />
+      <section id="wishlist" className="mt-12 space-y-4">
+        <h2 className="font-heading text-3xl">Wishlist</h2>
+        <GoalManager
+          slug={page.slug}
+          goals={(goalsResult.data ?? []).map(toGoal)}
+          categories={(categoriesResult.data ?? []).flatMap((row) => {
+            const category = toWishlistCategory(row);
+            return category ? [category] : [];
+          })}
+        />
       </section>
 
       <section id="access" className="mt-12 space-y-4">

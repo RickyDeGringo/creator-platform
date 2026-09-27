@@ -47,6 +47,16 @@ export function parseDuration(value: FormDataEntryValue | null): 7 | 30 | 90 | n
   return null;
 }
 
+export function normalizeCategoryName(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+export function categoryNameError(value: string) {
+  const name = normalizeCategoryName(value);
+  if (name.length < 1 || name.length > 40) return "Category names are 1–40 characters.";
+  return null;
+}
+
 export function parseAmount(value: FormDataEntryValue | null) {
   const raw = String(value ?? "").trim();
   if (!/^\d+(\.\d{1,2})?$/.test(raw)) return null;
@@ -79,6 +89,9 @@ export function friendlyDbError(message: string) {
   if (message.includes("comment_length")) return "Comments can be up to 1000 characters.";
   if (message.includes("too_many_goals")) return "Attach up to 6 goals.";
   if (message.includes("goal_page_mismatch")) return "Choose goals from this page.";
+  if (message.includes("too_many_categories")) return "A page can have 24 wishlist categories.";
+  if (message.includes("category_page_mismatch")) return "Choose a category from this page.";
+  if (message.includes("wishlist_categories_page_name")) return "That category is already on this page.";
   if (message.includes("image_page_mismatch") || message.includes("invalid_image_path")) {
     return "That photo could not be saved.";
   }
