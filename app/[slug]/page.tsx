@@ -37,7 +37,7 @@ export default async function CreatorPage({ params, searchParams }: Props) {
     );
   }
 
-  const { page, covers, goals, categories, posts, followerCount, isFollowing, isMember, staff, viewer } = result.data;
+  const { page, covers, goals, categories, posts, followerCount, isFollowing, isMember, viewer } = result.data;
 
   return (
     <CreatorView
@@ -59,7 +59,6 @@ export default async function CreatorPage({ params, searchParams }: Props) {
       goals={goals}
       categories={categories}
       posts={posts}
-      staff={staff}
       notice={error ?? null}
     />
   );

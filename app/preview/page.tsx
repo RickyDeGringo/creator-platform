@@ -184,7 +184,6 @@ export default function PreviewPage() {
         goals={goals}
         categories={categories}
         posts={posts}
-        staff={members.map(({ username, role }) => ({ username, role }))}
         notice={null}
       />
       <div className="mx-auto w-full max-w-3xl space-y-12 px-4 pb-20">

@@ -1,5 +1,10 @@
 export const PHOTO_MAX_COUNT = 5;
-export const PHOTO_MAX_BYTES = 12 * 1024 * 1024;
+export const PHOTO_SOURCE_MAX_BYTES = 40 * 1024 * 1024;
+export const PHOTO_UPLOAD_MAX_BYTES = 700 * 1024;
+
+export function photoSourceLimitLabel() {
+  return `${PHOTO_SOURCE_MAX_BYTES / (1024 * 1024)} MB`;
+}
 export const PHOTO_MAX_WIDTH = 1600;
 export const PHOTO_MAX_HEIGHT = 2000;
 export const PHOTO_MAX_LANDSCAPE_RATIO = 2;

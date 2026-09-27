@@ -1,4 +1,4 @@
-import { cropRect, outputSize, PHOTO_MAX_BYTES } from "@/lib/photo-frame";
+import { cropRect, outputSize, PHOTO_SOURCE_MAX_BYTES, PHOTO_UPLOAD_MAX_BYTES, photoSourceLimitLabel } from "@/lib/photo-frame";
 
 const ACCEPTED = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
@@ -6,8 +6,8 @@ export async function preparePhotoFile(file: File) {
   if (!ACCEPTED.has(file.type)) {
     throw new Error("Use a JPEG, PNG, WebP, or GIF photo.");
   }
-  if (file.size > PHOTO_MAX_BYTES) {
-    throw new Error("Each photo must be under 12 MB.");
+  if (file.size > PHOTO_SOURCE_MAX_BYTES) {
+    throw new Error(`Each photo must be under ${photoSourceLimitLabel()}.`);
   }
 
   let bitmap: ImageBitmap;
@@ -39,14 +39,29 @@ export async function preparePhotoFile(file: File) {
       size.height,
     );
 
-    const blob = await canvasBlob(canvas, "image/webp", 0.8);
-    const encoded = blob ?? (await canvasBlob(canvas, "image/jpeg", 0.86));
+    const encoded = await encodeUnderLimit(canvas);
     if (!encoded) throw new Error("Could not prepare that photo.");
     const extension = encoded.type === "image/webp" ? "webp" : "jpg";
     return new File([encoded], `photo.${extension}`, { type: encoded.type || "image/jpeg" });
   } finally {
     bitmap.close();
   }
+}
+
+async function encodeUnderLimit(canvas: HTMLCanvasElement) {
+  const attempts: [string, number][] = [
+    ["image/webp", 0.8],
+    ["image/webp", 0.65],
+    ["image/webp", 0.5],
+    ["image/jpeg", 0.8],
+    ["image/jpeg", 0.65],
+    ["image/jpeg", 0.5],
+  ];
+  for (const [type, quality] of attempts) {
+    const blob = await canvasBlob(canvas, type, quality);
+    if (blob && blob.size <= PHOTO_UPLOAD_MAX_BYTES) return blob;
+  }
+  return null;
 }
 
 function canvasBlob(canvas: HTMLCanvasElement, type: string, quality: number) {

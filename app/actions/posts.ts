@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { httpsUrl } from "@/lib/format";
-import { PHOTO_MAX_BYTES, PHOTO_MAX_COUNT } from "@/lib/photo-frame";
+import { PHOTO_MAX_COUNT, PHOTO_UPLOAD_MAX_BYTES } from "@/lib/photo-frame";
 import { PhotoError, processPhoto } from "@/lib/process-photo";
 import { getStaffPage } from "@/lib/staff";
 import { createClient } from "@/lib/supabase/server";
@@ -66,7 +66,9 @@ export async function createPost(slug: string, _prev: ActionState, formData: For
   if (photos.length + (imageUrl ? 1 : 0) > PHOTO_MAX_COUNT) {
     return { error: `A post can show ${PHOTO_MAX_COUNT} images.` };
   }
-  if (photos.some((photo) => photo.size > PHOTO_MAX_BYTES)) return { error: "Each photo must be under 12 MB." };
+  if (photos.some((photo) => photo.size > PHOTO_UPLOAD_MAX_BYTES)) {
+    return { error: "That photo is still too large after resizing." };
+  }
   if (goalIds.length > MAX_GOALS) return { error: "Attach up to 6 goals." };
   if (!content && !imageUrl && photos.length === 0) return { error: "Add text, a photo, or an image URL." };
 

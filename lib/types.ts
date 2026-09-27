@@ -149,8 +149,3 @@ export type PageMember = {
   username: string;
   role: PageRole;
 };
-
-export type PageStaff = {
-  username: string;
-  role: PageRole;
-};

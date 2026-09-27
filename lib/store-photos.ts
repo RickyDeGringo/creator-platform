@@ -1,5 +1,4 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { PHOTO_MAX_BYTES } from "@/lib/photo-frame";
 import { PhotoError, processPhoto } from "@/lib/process-photo";
 
 export type StoredPhoto = {
@@ -59,7 +58,7 @@ export async function removeStored(supabase: SupabaseClient, paths: string[]) {
 
 function storageError(message: string) {
   if (message.toLowerCase().includes("size")) {
-    return `That photo is still over ${Math.round(PHOTO_MAX_BYTES / (1024 * 1024))} MB after resizing.`;
+    return "That photo is still too large after resizing.";
   }
   return "Could not store that photo.";
 }

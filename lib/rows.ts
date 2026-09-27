@@ -9,7 +9,6 @@ import type {
   WishlistCategory,
   PageMember,
   PageRole,
-  PageStaff,
   PostComment,
   PostGoal,
   PostImage,
@@ -242,14 +241,6 @@ export function commentThreads(rows: unknown[], postId: string): PostComment[] {
 
 export function toRole(value: unknown): PageRole | null {
   return value === "owner" || value === "manager" ? value : null;
-}
-
-export function toPageStaff(value: unknown): PageStaff | null {
-  const row = record(value);
-  const role = toRole(row.role);
-  const username = typeof row.username === "string" ? row.username : "";
-  if (!role || !username) return null;
-  return { username, role };
 }
 
 export function toPageMember(value: unknown): PageMember | null {

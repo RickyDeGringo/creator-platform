@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { cropRect, PHOTO_MAX_BYTES, PHOTO_MAX_HEIGHT, PHOTO_MAX_WIDTH } from "@/lib/photo-frame";
+import { cropRect, PHOTO_MAX_HEIGHT, PHOTO_MAX_WIDTH, PHOTO_UPLOAD_MAX_BYTES } from "@/lib/photo-frame";
 
 const MAX_PIXELS = 24_000_000;
 const ALLOWED = new Set(["jpeg", "png", "webp", "gif", "avif", "tiff", "heif"]);
@@ -13,7 +13,7 @@ export class PhotoError extends Error {
 
 export async function processPhoto(input: Buffer) {
   if (input.byteLength === 0) throw new PhotoError("That photo is empty.");
-  if (input.byteLength > PHOTO_MAX_BYTES) throw new PhotoError("Each photo must be under 12 MB.");
+  if (input.byteLength > PHOTO_UPLOAD_MAX_BYTES) throw new PhotoError("That photo is still too large after resizing.");
 
   let format: string | undefined;
   try {
