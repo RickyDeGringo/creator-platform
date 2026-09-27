@@ -1,9 +1,9 @@
 import { cache } from "react";
 import { isSupabaseConfigured } from "@/lib/env";
 import { httpsUrl } from "@/lib/format";
-import { commentThreads, toFeedPost, toGoal, toPage, toPostImage, toWishlistCategory } from "@/lib/rows";
+import { commentThreads, toFeedPost, toGoal, toPage, toPageStaff, toPostImage, toWishlistCategory } from "@/lib/rows";
 import { createClient } from "@/lib/supabase/server";
-import type { CreatorPage, FeedPost, Goal, PostImage, Viewer, WishlistCategory } from "@/lib/types";
+import type { CreatorPage, FeedPost, Goal, PageStaff, PostImage, Viewer, WishlistCategory } from "@/lib/types";
 import { getViewer } from "@/lib/viewer";
 
 export type CreatorPageData = {
@@ -15,6 +15,7 @@ export type CreatorPageData = {
   followerCount: number;
   isFollowing: boolean;
   isMember: boolean;
+  staff: PageStaff[];
   viewer: Viewer | null;
 };
 
@@ -50,7 +51,7 @@ export const loadCreatorPage = cache(async (slug: string): Promise<LoadCreatorRe
   const page = toPage(pageRow);
   const viewer = await getViewer();
 
-  const [goalsResult, categoriesResult, coversResult, feedResult, commentsResult, countResult, followResult, memberResult] =
+  const [goalsResult, categoriesResult, coversResult, feedResult, commentsResult, countResult, followResult, memberResult, staffResult] =
     await Promise.all([
     supabase
       .from("goals")
@@ -97,6 +98,7 @@ export const loadCreatorPage = cache(async (slug: string): Promise<LoadCreatorRe
           .eq("user_id", viewer.id)
           .maybeSingle()
       : Promise.resolve({ data: null, error: null }),
+    supabase.rpc("list_page_staff", { p_page_id: page.id }),
   ]);
 
   if (goalsResult.error) return { status: "error", message: goalsResult.error.message };
@@ -107,6 +109,7 @@ export const loadCreatorPage = cache(async (slug: string): Promise<LoadCreatorRe
   if (countResult.error) return { status: "error", message: countResult.error.message };
   if (followResult.error) return { status: "error", message: followResult.error.message };
   if (memberResult.error) return { status: "error", message: memberResult.error.message };
+  if (staffResult.error) return { status: "error", message: staffResult.error.message };
 
   return {
     status: "ok",
@@ -126,6 +129,10 @@ export const loadCreatorPage = cache(async (slug: string): Promise<LoadCreatorRe
       followerCount: countResult.count ?? 0,
       isFollowing: Boolean(followResult.data),
       isMember: Boolean(memberResult.data),
+      staff: (staffResult.data ?? []).flatMap((row: unknown) => {
+        const person = toPageStaff(row);
+        return person ? [person] : [];
+      }),
       viewer,
     },
   };

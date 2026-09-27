@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AccessManager } from "@/components/dashboard/access-manager";
+import { DashboardTabs } from "@/components/dashboard/dashboard-tabs";
 import { GoalManager } from "@/components/dashboard/goal-manager";
+import { MemberManager } from "@/components/dashboard/member-manager";
 import { PageDetailsForm } from "@/components/dashboard/page-forms";
 import { PostManager } from "@/components/dashboard/post-manager";
 import { SetupNotice } from "@/components/setup-notice";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/env";
-import { toAccessCode, toCoverImage, toGoal, toManagedPost, toPage, toRole, toWishlistCategory } from "@/lib/rows";
+import { toAccessCode, toCoverImage, toGoal, toManagedPost, toPage, toPageMember, toRole, toWishlistCategory } from "@/lib/rows";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/viewer";
 
@@ -64,7 +66,7 @@ export default async function DashboardSlugPage({ params }: Props) {
     );
   }
 
-  const [postsResult, goalsResult, categoriesResult, coversResult, codesResult] = await Promise.all([
+  const [postsResult, goalsResult, categoriesResult, coversResult, codesResult, membersResult] = await Promise.all([
     supabase
       .from("posts")
       .select(
@@ -94,7 +96,18 @@ export default async function DashboardSlugPage({ params }: Props) {
       .select("id, page_id, code_string, duration_days, is_redeemed, redeemed_by_user, created_at")
       .eq("page_id", page.id)
       .order("created_at", { ascending: false }),
+    supabase.from("page_members").select("user_id, role, users(username)").eq("page_id", page.id),
   ]);
+
+  const members = (membersResult.data ?? [])
+    .flatMap((row) => {
+      const member = toPageMember(row);
+      return member ? [member] : [];
+    })
+    .sort((a, b) => {
+      if (a.role !== b.role) return a.role === "owner" ? -1 : 1;
+      return a.username.localeCompare(b.username);
+    });
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-12">
@@ -111,67 +124,52 @@ export default async function DashboardSlugPage({ params }: Props) {
         </div>
       </div>
 
-      <nav className="mt-6 flex flex-wrap gap-2 text-sm">
-        <a href="#details" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-          Details
-        </a>
-        <a href="#posts" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-          Posts
-        </a>
-        <a href="#wishlist" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-          Wishlist
-        </a>
-        <a href="#access" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-          Access
-        </a>
-      </nav>
-
-      {postsResult.error || goalsResult.error || categoriesResult.error || coversResult.error || codesResult.error ? (
+      {postsResult.error ||
+      goalsResult.error ||
+      categoriesResult.error ||
+      coversResult.error ||
+      codesResult.error ||
+      membersResult.error ? (
         <p className="mt-6 text-sm text-destructive">
           {postsResult.error?.message ??
             goalsResult.error?.message ??
             categoriesResult.error?.message ??
             coversResult.error?.message ??
-            codesResult.error?.message}
+            codesResult.error?.message ??
+            membersResult.error?.message}
         </p>
       ) : null}
 
-      <section id="details" className="mt-10 space-y-4">
-        <h2 className="font-heading text-3xl">Details</h2>
-        <PageDetailsForm
-          page={page}
-          covers={(coversResult.data ?? []).flatMap((row) => {
-            const cover = toCoverImage(row);
-            return cover ? [cover] : [];
-          })}
-        />
-      </section>
-
-      <section id="posts" className="mt-12 space-y-4">
-        <h2 className="font-heading text-3xl">Posts</h2>
-        <PostManager
-          slug={page.slug}
-          posts={(postsResult.data ?? []).map(toManagedPost)}
-          goals={(goalsResult.data ?? []).map(toGoal)}
-        />
-      </section>
-
-      <section id="wishlist" className="mt-12 space-y-4">
-        <h2 className="font-heading text-3xl">Wishlist</h2>
-        <GoalManager
-          slug={page.slug}
-          goals={(goalsResult.data ?? []).map(toGoal)}
-          categories={(categoriesResult.data ?? []).flatMap((row) => {
-            const category = toWishlistCategory(row);
-            return category ? [category] : [];
-          })}
-        />
-      </section>
-
-      <section id="access" className="mt-12 space-y-4">
-        <h2 className="font-heading text-3xl">Access</h2>
-        <AccessManager slug={page.slug} codes={(codesResult.data ?? []).map(toAccessCode)} />
-      </section>
+      <DashboardTabs
+        details={
+          <PageDetailsForm
+            page={page}
+            covers={(coversResult.data ?? []).flatMap((row) => {
+              const cover = toCoverImage(row);
+              return cover ? [cover] : [];
+            })}
+          />
+        }
+        posts={
+          <PostManager
+            slug={page.slug}
+            posts={(postsResult.data ?? []).map(toManagedPost)}
+            goals={(goalsResult.data ?? []).map(toGoal)}
+          />
+        }
+        wishlist={
+          <GoalManager
+            slug={page.slug}
+            goals={(goalsResult.data ?? []).map(toGoal)}
+            categories={(categoriesResult.data ?? []).flatMap((row) => {
+              const category = toWishlistCategory(row);
+              return category ? [category] : [];
+            })}
+          />
+        }
+        managers={<MemberManager slug={page.slug} role={role} members={members} />}
+        access={<AccessManager slug={page.slug} codes={(codesResult.data ?? []).map(toAccessCode)} />}
+      />
     </div>
   );
 }

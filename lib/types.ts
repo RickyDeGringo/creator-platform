@@ -143,3 +143,14 @@ export type Membership = {
   role: PageRole;
   page: CreatorPage;
 };
+
+export type PageMember = {
+  userId: string;
+  username: string;
+  role: PageRole;
+};
+
+export type PageStaff = {
+  username: string;
+  role: PageRole;
+};

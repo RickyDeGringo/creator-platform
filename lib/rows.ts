@@ -7,7 +7,9 @@ import type {
   Goal,
   ManagedPost,
   WishlistCategory,
+  PageMember,
   PageRole,
+  PageStaff,
   PostComment,
   PostGoal,
   PostImage,
@@ -240,4 +242,23 @@ export function commentThreads(rows: unknown[], postId: string): PostComment[] {
 
 export function toRole(value: unknown): PageRole | null {
   return value === "owner" || value === "manager" ? value : null;
+}
+
+export function toPageStaff(value: unknown): PageStaff | null {
+  const row = record(value);
+  const role = toRole(row.role);
+  const username = typeof row.username === "string" ? row.username : "";
+  if (!role || !username) return null;
+  return { username, role };
+}
+
+export function toPageMember(value: unknown): PageMember | null {
+  const row = record(value);
+  const role = toRole(row.role);
+  const userId = typeof row.user_id === "string" ? row.user_id : "";
+  const linked = Array.isArray(row.users) ? row.users[0] : row.users;
+  const profile = linked && typeof linked === "object" ? record(linked) : {};
+  const username = typeof profile.username === "string" ? profile.username : "";
+  if (!role || !userId || !username) return null;
+  return { userId, username, role };
 }

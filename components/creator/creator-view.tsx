@@ -1,10 +1,11 @@
 import { CoverBanner } from "@/components/creator/cover-banner";
 import { CreatorTabs } from "@/components/creator/creator-tabs";
 import { FollowButton } from "@/components/creator/follow-button";
+import { ManagerList } from "@/components/creator/manager-list";
 import { PostFeed } from "@/components/creator/post-feed";
 import { WishlistBoard } from "@/components/creator/wishlist-board";
 import { formatFollowers } from "@/lib/format";
-import type { CommentAccess, FeedPost, Goal, PostImage, WishlistCategory } from "@/lib/types";
+import type { CommentAccess, FeedPost, Goal, PageStaff, PostImage, WishlistCategory } from "@/lib/types";
 
 export function CreatorView({
   slug,
@@ -20,6 +21,7 @@ export function CreatorView({
   goals,
   categories,
   posts,
+  staff,
   notice,
 }: {
   slug: string;
@@ -35,6 +37,7 @@ export function CreatorView({
   goals: Goal[];
   categories: WishlistCategory[];
   posts: FeedPost[];
+  staff: PageStaff[];
   notice?: string | null;
 }) {
   return (
@@ -55,6 +58,7 @@ export function CreatorView({
               {notice}
             </p>
           ) : null}
+          <ManagerList staff={staff} />
         </div>
 
         <CreatorTabs

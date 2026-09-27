@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AccessManager } from "@/components/dashboard/access-manager";
 import { GoalManager } from "@/components/dashboard/goal-manager";
+import { MemberManager } from "@/components/dashboard/member-manager";
 import { PostManager } from "@/components/dashboard/post-manager";
 import { CreatorView } from "@/components/creator/creator-view";
 import { RedeemForm } from "@/components/redeem-form";
 import { isSupabaseConfigured } from "@/lib/env";
-import type { AccessCode, FeedPost, Goal, ManagedPost, WishlistCategory } from "@/lib/types";
+import type { AccessCode, FeedPost, Goal, ManagedPost, PageMember, WishlistCategory } from "@/lib/types";
 
 export const metadata: Metadata = { title: "UI preview" };
 
@@ -147,6 +148,11 @@ const managedPosts: ManagedPost[] = [
   },
 ];
 
+const members: PageMember[] = [
+  { userId: "user-owner", username: "nova", role: "owner" },
+  { userId: "user-manager", username: "stagehand", role: "manager" },
+];
+
 const codes: AccessCode[] = [
   {
     id: "code-1",
@@ -178,6 +184,7 @@ export default function PreviewPage() {
         goals={goals}
         categories={categories}
         posts={posts}
+        staff={members.map(({ username, role }) => ({ username, role }))}
         notice={null}
       />
       <div className="mx-auto w-full max-w-3xl space-y-12 px-4 pb-20">
@@ -192,6 +199,10 @@ export default function PreviewPage() {
         <section className="space-y-4">
           <h2 className="font-heading text-3xl">Wishlist</h2>
           <GoalManager slug="preview" goals={goals} categories={categories} />
+        </section>
+        <section className="space-y-4">
+          <h2 className="font-heading text-3xl">Managers</h2>
+          <MemberManager slug="preview" role="owner" members={members} />
         </section>
         <section className="space-y-4">
           <h2 className="font-heading text-3xl">Access</h2>

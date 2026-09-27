@@ -41,6 +41,14 @@ export function usernameError(value: string) {
   return null;
 }
 
+export function emailError(value: string) {
+  const email = value.trim().toLowerCase();
+  if (email.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return "Enter a valid email address.";
+  }
+  return null;
+}
+
 export function parseDuration(value: FormDataEntryValue | null): 7 | 30 | 90 | null {
   const n = Number(value);
   if (n === 7 || n === 30 || n === 90) return n;
@@ -73,6 +81,19 @@ export function friendlyDbError(message: string) {
   if (message.includes("not_authenticated")) return "Sign in to continue.";
   if (message.includes("not_authorized")) return "You do not manage this page.";
   if (message.includes("user_not_found")) return "No account uses that username.";
+  if (message.includes("email_not_found")) {
+    return "No account uses that email. They need to sign up first.";
+  }
+  if (message.includes("profile_missing")) {
+    return "That account has no profile yet. Ask them to sign in once, then try again.";
+  }
+  if (message.includes("already_manager")) return "That account already manages this page.";
+  if (message.includes("already_owner")) return "That account already owns this page.";
+  if (message.includes("invalid_email")) return "Enter a valid email address.";
+  if (message.includes("owner_only")) return "Only the page owner can add or remove managers.";
+  if (message.includes("add_page_manager")) {
+    return "Adding managers is not available until the latest database migration is applied.";
+  }
   if (message.includes("invalid_duration")) return "Choose 7, 30, or 90 days.";
   if (message.includes("duplicate key") || message.includes("23505")) {
     return "That value is already taken.";
