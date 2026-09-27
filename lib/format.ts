@@ -36,6 +36,14 @@ export function httpsUrl(value: string | null | undefined) {
   }
 }
 
+export function supportLink(goalLink: string | null | undefined, fallback: string | null | undefined) {
+  const own = httpsUrl(goalLink);
+  if (own) return { href: own, label: "Get this" as const };
+  const shared = httpsUrl(fallback);
+  if (shared) return { href: shared, label: "Donate" as const };
+  return null;
+}
+
 export function progressPercent(current: number | string, target: number | string) {
   const goal = asNumber(target);
   if (goal <= 0) return 0;

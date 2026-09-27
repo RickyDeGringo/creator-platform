@@ -67,12 +67,14 @@ export default async function DashboardSlugPage({ params }: Props) {
   const [postsResult, goalsResult, codesResult] = await Promise.all([
     supabase
       .from("posts")
-      .select("id, page_id, content, image_url, is_paywalled, created_at")
+      .select(
+        "id, page_id, content, image_url, is_paywalled, created_at, post_images(url, width, height, sort_order), post_goals(sort_order, goals(id, title))",
+      )
       .eq("page_id", page.id)
       .order("created_at", { ascending: false }),
     supabase
       .from("goals")
-      .select("id, page_id, title, description, target_amount, current_amount_raised, created_at")
+      .select("id, page_id, title, description, link, target_amount, current_amount_raised, created_at")
       .eq("page_id", page.id)
       .order("created_at", { ascending: false }),
     supabase
@@ -125,7 +127,11 @@ export default async function DashboardSlugPage({ params }: Props) {
 
       <section id="posts" className="mt-12 space-y-4">
         <h2 className="font-heading text-3xl">Posts</h2>
-        <PostManager slug={page.slug} posts={(postsResult.data ?? []).map(toManagedPost)} />
+        <PostManager
+          slug={page.slug}
+          posts={(postsResult.data ?? []).map(toManagedPost)}
+          goals={(goalsResult.data ?? []).map(toGoal)}
+        />
       </section>
 
       <section id="goals" className="mt-12 space-y-4">

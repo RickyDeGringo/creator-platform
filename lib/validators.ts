@@ -3,6 +3,7 @@ const RESERVED_SLUGS = new Set([
   "redeem",
   "dashboard",
   "preview",
+  "profile",
   "auth",
   "api",
 ]);
@@ -69,5 +70,12 @@ export function friendlyDbError(message: string) {
   if (message.includes("23503")) {
     return "Your profile is not ready yet. Apply supabase/schema.sql, then sign up again.";
   }
+  if (message.includes("too_many_images")) return "A post can show 5 images.";
+  if (message.includes("too_many_goals")) return "Attach up to 6 goals.";
+  if (message.includes("goal_page_mismatch")) return "Choose goals from this page.";
+  if (message.includes("image_page_mismatch") || message.includes("invalid_image_path")) {
+    return "That photo could not be saved.";
+  }
+  if (message.includes("goals_link_https")) return "Goal link must start with https://.";
   return message;
 }

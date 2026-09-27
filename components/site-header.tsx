@@ -25,9 +25,9 @@ export function SiteHeader({
               <Link href="/dashboard" className={buttonVariants({ variant: "ghost", size: "sm" })}>
                 Dashboard
               </Link>
-              <span className="hidden max-w-32 truncate text-sm text-muted-foreground sm:inline">
-                @{viewer.username ?? "account"}
-              </span>
+              <Link href="/profile" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                Profile
+              </Link>
               <form action={signOut}>
                 <Button type="submit" variant="outline" size="sm">
                   Sign out

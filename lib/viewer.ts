@@ -13,7 +13,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
 
     const { data: profile } = await supabase
       .from("users")
-      .select("username")
+      .select("username, is_superadmin")
       .eq("id", data.user.id)
       .maybeSingle();
 
@@ -21,6 +21,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
       id: data.user.id,
       email: data.user.email ?? null,
       username: profile?.username ?? null,
+      isSuperadmin: profile?.is_superadmin === true,
     };
   } catch {
     return null;

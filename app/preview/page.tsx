@@ -14,11 +14,22 @@ const goals: Goal[] = [
   {
     id: "goal-1",
     page_id: "page-1",
-    title: "New lighting rig",
-    description: "Softboxes and a backup mic for the Friday night show.",
-    target_amount: 1600,
-    current_amount_raised: 640,
+    title: "New saddle",
+    description: "The current one is done after this season.",
+    link: "https://example.com/saddle",
+    target_amount: 180,
+    current_amount_raised: 45,
     created_at: "2026-09-01T00:00:00.000Z",
+  },
+  {
+    id: "goal-2",
+    page_id: "page-1",
+    title: "New bell",
+    description: null,
+    link: "https://example.com/bell",
+    target_amount: 25,
+    current_amount_raised: 10,
+    created_at: "2026-09-02T00:00:00.000Z",
   },
 ];
 
@@ -26,8 +37,25 @@ const posts: FeedPost[] = [
   {
     id: "post-1",
     page_id: "page-1",
-    content: "Friday's set list is up. Come say hey in the first ten minutes.",
+    content: "Long climb today. The saddle is finished and the bell barely rings.",
     image_url: null,
+    images: [],
+    goals: [
+      {
+        id: "goal-1",
+        title: "New saddle",
+        link: "https://example.com/saddle",
+        target_amount: 180,
+        current_amount_raised: 45,
+      },
+      {
+        id: "goal-2",
+        title: "New bell",
+        link: "https://example.com/bell",
+        target_amount: 25,
+        current_amount_raised: 10,
+      },
+    ],
     is_paywalled: false,
     is_locked: false,
     created_at: "2026-09-20T00:00:00.000Z",
@@ -37,6 +65,8 @@ const posts: FeedPost[] = [
     page_id: "page-1",
     content: null,
     image_url: null,
+    images: [],
+    goals: [],
     is_paywalled: true,
     is_locked: true,
     created_at: "2026-09-22T00:00:00.000Z",
@@ -47,8 +77,13 @@ const managedPosts: ManagedPost[] = [
   {
     id: "post-1",
     page_id: "page-1",
-    content: "Friday's set list is up.",
+    content: "Long climb today.",
     image_url: null,
+    images: [],
+    goals: [
+      { id: "goal-1", title: "New saddle" },
+      { id: "goal-2", title: "New bell" },
+    ],
     is_paywalled: false,
     created_at: "2026-09-20T00:00:00.000Z",
   },
@@ -92,7 +127,7 @@ export default function PreviewPage() {
         </section>
         <section className="space-y-4">
           <h2 className="font-heading text-3xl">Posts</h2>
-          <PostManager slug="preview" posts={managedPosts} />
+          <PostManager slug="preview" posts={managedPosts} goals={goals} />
         </section>
         <section className="space-y-4">
           <h2 className="font-heading text-3xl">Goals</h2>

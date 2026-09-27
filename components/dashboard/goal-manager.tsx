@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
-import { createGoal, deleteGoal, updateGoalAmount } from "@/app/actions/goals";
+import { createGoal, deleteGoal, updateGoal } from "@/app/actions/goals";
 import { FormMessage } from "@/components/form-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { asNumber, formatMoney } from "@/lib/format";
 import type { Goal } from "@/lib/types";
 
 function GoalEditor({ slug, goal }: { slug: string; goal: Goal }) {
-  const [state, action] = useActionState(updateGoalAmount.bind(null, slug, goal.id), null);
+  const [state, action] = useActionState(updateGoal.bind(null, slug, goal.id), null);
   const [deleteState, deleteAction] = useActionState(deleteGoal.bind(null, slug), null);
 
   return (
@@ -22,18 +22,33 @@ function GoalEditor({ slug, goal }: { slug: string; goal: Goal }) {
           {formatMoney(goal.current_amount_raised)} of {formatMoney(goal.target_amount)}
         </p>
       </div>
-      <form action={action} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div className="grow space-y-2">
-          <Label htmlFor={`raised-${goal.id}`}>Amount raised (USD)</Label>
+      <form action={action} className="grid gap-3">
+        <div className="space-y-2">
+          <Label htmlFor={`link-${goal.id}`}>Shop or support link</Label>
           <Input
-            id={`raised-${goal.id}`}
-            name="current_amount_raised"
-            inputMode="decimal"
-            defaultValue={asNumber(goal.current_amount_raised).toFixed(2)}
+            id={`link-${goal.id}`}
+            name="link"
+            type="url"
+            inputMode="url"
+            maxLength={2000}
+            defaultValue={goal.link ?? ""}
+            placeholder="https://"
             className="h-10"
           />
         </div>
-        <Button type="submit">Save amount</Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="grow space-y-2">
+            <Label htmlFor={`raised-${goal.id}`}>Amount raised (USD)</Label>
+            <Input
+              id={`raised-${goal.id}`}
+              name="current_amount_raised"
+              inputMode="decimal"
+              defaultValue={asNumber(goal.current_amount_raised).toFixed(2)}
+              className="h-10"
+            />
+          </div>
+          <Button type="submit">Save</Button>
+        </div>
       </form>
       <FormMessage state={state} />
       <form action={deleteAction}>
@@ -74,6 +89,21 @@ export function GoalManager({ slug, goals }: { slug: string; goals: Goal[] }) {
           <Textarea id="description" name="description" className="min-h-20" />
         </div>
         <div className="space-y-2">
+          <Label htmlFor="goal-link">Shop or support link</Label>
+          <Input
+            id="goal-link"
+            name="link"
+            type="url"
+            inputMode="url"
+            maxLength={2000}
+            placeholder="https:// — a saddle, a bell, or a PayPal link"
+            className="h-10"
+          />
+          <p className="text-sm text-muted-foreground">
+            Optional. People use this link to buy the thing or chip in. Leave it blank to use the page payment link.
+          </p>
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="target_amount">Target amount (USD)</Label>
           <Input id="target_amount" name="target_amount" inputMode="decimal" required placeholder="250.00" className="h-10" />
         </div>
@@ -82,7 +112,7 @@ export function GoalManager({ slug, goals }: { slug: string; goals: Goal[] }) {
       </form>
       <div className="grid gap-3">
         {goals.map((goal) => (
-          <GoalEditor key={`${goal.id}-${goal.current_amount_raised}`} slug={slug} goal={goal} />
+          <GoalEditor key={`${goal.id}-${goal.current_amount_raised}-${goal.link ?? ""}`} slug={slug} goal={goal} />
         ))}
       </div>
     </div>

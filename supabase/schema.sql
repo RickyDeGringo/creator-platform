@@ -3,14 +3,19 @@
 --
 -- Access model
 --   * public.users mirrors auth.users (username + avatar only; email stays in auth).
+--   * is_superadmin is set only by the auth trigger for richyfong@gmail.com,
+--     or by the database owner. Signed-in users cannot change that column.
 --   * Creating a creator page inserts the current user as owner.
 --   * Owners and managers share the dashboard.
 --   * Paid access lives in subscriptions. Clients cannot insert or update that table.
 --   * Redeeming a code and manually granting access go through security-definer functions.
---   * get_page_feed is the public read path. Paywalled bodies and image URLs are
---     returned only to page members and to users whose subscription has not expired.
---     Everyone else gets the row with is_locked = true and null content, so the UI
+--   * get_page_feed is the public read path. Paywalled bodies, image URLs,
+--     uploaded photos, and the goals attached to a post are returned only to
+--     page members and to users whose subscription has not expired.
+--     Everyone else gets the row with is_locked = true and empty content, so the UI
 --     can render a blurred locked card without shipping the post to the browser.
+--   * Uploaded photos are stored as WebP in the public post-media bucket.
+--     Paths are unguessable. Locked posts never receive those URLs.
 
 create extension if not exists pgcrypto;
 
@@ -35,6 +40,7 @@ create table public.users (
   id uuid primary key references auth.users (id) on delete cascade,
   username text not null,
   avatar_url text,
+  is_superadmin boolean not null default false,
   created_at timestamptz not null default now(),
   constraint users_username_format check (username ~ '^[a-z0-9_]{3,30}$'),
   constraint users_username_unique unique (username)
@@ -113,12 +119,46 @@ create table public.goals (
   page_id uuid not null references public.creator_pages (id) on delete cascade,
   title text not null,
   description text,
+  link text,
   target_amount numeric(12, 2) not null,
   current_amount_raised numeric(12, 2) not null default 0,
   created_at timestamptz not null default now(),
   constraint goals_title_length check (char_length(trim(title)) between 1 and 120),
   constraint goals_target_positive check (target_amount > 0),
-  constraint goals_raised_nonnegative check (current_amount_raised >= 0)
+  constraint goals_raised_nonnegative check (current_amount_raised >= 0),
+  constraint goals_link_https check (
+    link is null or (link ~ '^https://' and char_length(link) <= 2000)
+  )
+);
+
+create table public.post_images (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts (id) on delete cascade,
+  page_id uuid not null references public.creator_pages (id) on delete cascade,
+  url text not null,
+  storage_path text,
+  width integer,
+  height integer,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  constraint post_images_url_https check (url ~ '^https://' and char_length(url) <= 2000),
+  constraint post_images_dimensions check (
+    (width is null and height is null)
+    or (width between 1 and 4000 and height between 1 and 4000)
+  ),
+  constraint post_images_sort check (sort_order between 0 and 7),
+  constraint post_images_path_shape check (
+    storage_path is null
+    or storage_path ~ '^[0-9a-f-]{36}/[0-9a-f-]{36}\.webp$'
+  )
+);
+
+create table public.post_goals (
+  post_id uuid not null references public.posts (id) on delete cascade,
+  goal_id uuid not null references public.goals (id) on delete cascade,
+  sort_order integer not null default 0,
+  primary key (post_id, goal_id),
+  constraint post_goals_sort check (sort_order between 0 and 7)
 );
 
 create index page_members_user_idx on public.page_members (user_id);
@@ -127,6 +167,9 @@ create index subscriptions_user_idx on public.subscriptions (user_id);
 create index posts_page_created_idx on public.posts (page_id, created_at desc);
 create index goals_page_created_idx on public.goals (page_id, created_at desc);
 create index access_codes_page_created_idx on public.access_codes (page_id, created_at desc);
+create index post_images_post_idx on public.post_images (post_id, sort_order);
+create index post_goals_post_idx on public.post_goals (post_id, sort_order);
+create index post_goals_goal_idx on public.post_goals (goal_id);
 
 -- ---------------------------------------------------------------------------
 -- Private helpers. Not exposed by the Data API (schema is not public).
@@ -243,15 +286,21 @@ begin
   end if;
 
   begin
-    insert into public.users (id, username, avatar_url)
-    values (new.id, v_username, new.raw_user_meta_data ->> 'avatar_url');
+    insert into public.users (id, username, avatar_url, is_superadmin)
+    values (
+      new.id,
+      v_username,
+      new.raw_user_meta_data ->> 'avatar_url',
+      lower(coalesce(new.email, '')) = 'richyfong@gmail.com'
+    );
   exception
     when unique_violation then
-      insert into public.users (id, username, avatar_url)
+      insert into public.users (id, username, avatar_url, is_superadmin)
       values (
         new.id,
         'user_' || substr(replace(new.id::text, '-', ''), 1, 12),
-        new.raw_user_meta_data ->> 'avatar_url'
+        new.raw_user_meta_data ->> 'avatar_url',
+        lower(coalesce(new.email, '')) = 'richyfong@gmail.com'
       );
   end;
 
@@ -262,6 +311,35 @@ $$;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- Clients can update username and avatar. The superadmin flag stays put
+-- unless the statement runs as the database owner or service role.
+create or replace function public.protect_superadmin_flag()
+returns trigger
+language plpgsql
+as $$
+declare
+  v_role text := current_user;
+begin
+  if tg_op = 'INSERT' then
+    if new.is_superadmin and v_role not in ('postgres', 'supabase_admin', 'service_role') then
+      new.is_superadmin := false;
+    end if;
+    return new;
+  end if;
+
+  if new.is_superadmin is distinct from old.is_superadmin
+     and v_role not in ('postgres', 'supabase_admin', 'service_role') then
+    raise exception 'not_authorized' using errcode = '42501';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger protect_superadmin_flag
+  before insert or update on public.users
+  for each row execute function public.protect_superadmin_flag();
 
 create or replace function public.add_page_owner()
 returns trigger
@@ -336,6 +414,97 @@ create trigger goals_page_immutable
   before update on public.goals
   for each row execute function private.prevent_page_move();
 
+create or replace function private.guard_post_image()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_catalog
+as $$
+declare
+  v_page_id uuid;
+  v_count integer;
+begin
+  select p.page_id into v_page_id
+  from public.posts p
+  where p.id = new.post_id;
+
+  if v_page_id is null or v_page_id is distinct from new.page_id then
+    raise exception 'image_page_mismatch' using errcode = '42501';
+  end if;
+
+  if new.storage_path is not null
+     and new.storage_path !~ ('^' || new.page_id::text || '/[0-9a-f-]{36}\.webp$') then
+    raise exception 'invalid_image_path' using errcode = '42501';
+  end if;
+
+  select count(*) into v_count
+  from public.post_images
+  where post_id = new.post_id;
+
+  if v_count >= 5 then
+    raise exception 'too_many_images' using errcode = '54000';
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function private.guard_post_goal()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_catalog
+as $$
+declare
+  v_count integer;
+begin
+  if not exists (
+    select 1
+    from public.posts p
+    join public.goals g on g.id = new.goal_id and g.page_id = p.page_id
+    where p.id = new.post_id
+  ) then
+    raise exception 'goal_page_mismatch' using errcode = '42501';
+  end if;
+
+  select count(*) into v_count
+  from public.post_goals
+  where post_id = new.post_id;
+
+  if v_count >= 6 then
+    raise exception 'too_many_goals' using errcode = '54000';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger post_images_guard
+  before insert on public.post_images
+  for each row execute function private.guard_post_image();
+
+create trigger post_goals_guard
+  before insert on public.post_goals
+  for each row execute function private.guard_post_goal();
+
+revoke all on function private.guard_post_image() from public, anon, authenticated;
+revoke all on function private.guard_post_goal() from public, anon, authenticated;
+
+create or replace function private.storage_page_id(object_name text)
+returns uuid
+language sql
+stable
+set search_path = pg_catalog, storage
+as $$
+  select case
+    when (storage.foldername(object_name))[1] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      then (storage.foldername(object_name))[1]::uuid
+    else null
+  end;
+$$;
+
+grant execute on function private.storage_page_id(text) to anon, authenticated;
+
 -- ---------------------------------------------------------------------------
 -- RPC used by the app
 -- ---------------------------------------------------------------------------
@@ -349,6 +518,8 @@ returns table (
   page_id uuid,
   content text,
   image_url text,
+  images jsonb,
+  goals jsonb,
   is_paywalled boolean,
   is_locked boolean,
   created_at timestamptz
@@ -371,6 +542,50 @@ as $$
         then p.image_url
       else null
     end as image_url,
+    case
+      when p.is_paywalled and not private.viewer_has_page_access(p.page_id) then '[]'::jsonb
+      else coalesce(
+        (
+          select jsonb_agg(
+            jsonb_build_object(
+              'url', i.url,
+              'width', i.width,
+              'height', i.height
+            )
+            order by i.sort_order
+          )
+          from public.post_images i
+          where i.post_id = p.id
+        ),
+        case
+          when p.image_url is not null then jsonb_build_array(
+            jsonb_build_object('url', p.image_url, 'width', null, 'height', null)
+          )
+          else '[]'::jsonb
+        end
+      )
+    end as images,
+    case
+      when p.is_paywalled and not private.viewer_has_page_access(p.page_id) then '[]'::jsonb
+      else coalesce(
+        (
+          select jsonb_agg(
+            jsonb_build_object(
+              'id', g.id,
+              'title', g.title,
+              'link', g.link,
+              'target_amount', g.target_amount,
+              'current_amount_raised', g.current_amount_raised
+            )
+            order by pg.sort_order
+          )
+          from public.post_goals pg
+          join public.goals g on g.id = pg.goal_id
+          where pg.post_id = p.id
+        ),
+        '[]'::jsonb
+      )
+    end as goals,
     p.is_paywalled,
     (p.is_paywalled and not private.viewer_has_page_access(p.page_id)) as is_locked,
     p.created_at
@@ -500,6 +715,7 @@ end;
 $$;
 
 revoke all on function public.handle_new_user() from public, anon, authenticated;
+revoke all on function public.protect_superadmin_flag() from public, anon, authenticated;
 revoke all on function public.add_page_owner() from public, anon, authenticated;
 revoke all on function public.protect_access_code() from public, anon, authenticated;
 
@@ -527,6 +743,8 @@ alter table public.subscriptions enable row level security;
 alter table public.posts enable row level security;
 alter table public.access_codes enable row level security;
 alter table public.goals enable row level security;
+alter table public.post_images enable row level security;
+alter table public.post_goals enable row level security;
 
 create policy users_select_public
   on public.users
@@ -697,12 +915,83 @@ create policy goals_delete_staff
   to authenticated
   using (private.is_page_member(page_id, array['owner', 'manager']::public.page_role[]));
 
+create policy post_images_select_visible
+  on public.post_images
+  for select
+  to anon, authenticated
+  using (
+    exists (
+      select 1
+      from public.posts p
+      where p.id = post_id
+        and (
+          p.is_paywalled = false
+          or private.viewer_has_page_access(p.page_id)
+        )
+    )
+  );
+
+create policy post_images_insert_staff
+  on public.post_images
+  for insert
+  to authenticated
+  with check (private.is_page_member(page_id, array['owner', 'manager']::public.page_role[]));
+
+create policy post_images_delete_staff
+  on public.post_images
+  for delete
+  to authenticated
+  using (private.is_page_member(page_id, array['owner', 'manager']::public.page_role[]));
+
+create policy post_goals_select_visible
+  on public.post_goals
+  for select
+  to anon, authenticated
+  using (
+    exists (
+      select 1
+      from public.posts p
+      where p.id = post_id
+        and (
+          p.is_paywalled = false
+          or private.viewer_has_page_access(p.page_id)
+        )
+    )
+  );
+
+create policy post_goals_insert_staff
+  on public.post_goals
+  for insert
+  to authenticated
+  with check (
+    exists (
+      select 1
+      from public.posts p
+      where p.id = post_id
+        and private.is_page_member(p.page_id, array['owner', 'manager']::public.page_role[])
+    )
+  );
+
+create policy post_goals_delete_staff
+  on public.post_goals
+  for delete
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.posts p
+      where p.id = post_id
+        and private.is_page_member(p.page_id, array['owner', 'manager']::public.page_role[])
+    )
+  );
+
 -- ---------------------------------------------------------------------------
 -- Grants. Subscriptions and access-code writes stay on the security-definer RPCs.
 -- ---------------------------------------------------------------------------
 
 grant select on public.users to anon, authenticated;
-grant insert, update on public.users to authenticated;
+grant insert (id, username, avatar_url) on public.users to authenticated;
+grant update (username, avatar_url) on public.users to authenticated;
 
 grant select on public.creator_pages to anon, authenticated;
 grant insert, update, delete on public.creator_pages to authenticated;
@@ -722,6 +1011,12 @@ grant select on public.subscriptions to authenticated;
 grant select on public.goals to anon, authenticated;
 grant insert, update, delete on public.goals to authenticated;
 
+grant select on public.post_images to anon, authenticated;
+grant insert, delete on public.post_images to authenticated;
+
+grant select on public.post_goals to anon, authenticated;
+grant insert, delete on public.post_goals to authenticated;
+
 revoke insert, update, delete on public.subscriptions from anon, authenticated;
 revoke insert, update on public.access_codes from anon, authenticated;
 
@@ -736,3 +1031,40 @@ begin
   end if;
 end
 $$;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('post-media', 'post-media', true, 5242880, array['image/webp'])
+on conflict (id) do update
+set public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+create policy post_media_public_read
+  on storage.objects
+  for select
+  to anon, authenticated
+  using (bucket_id = 'post-media');
+
+create policy post_media_staff_insert
+  on storage.objects
+  for insert
+  to authenticated
+  with check (
+    bucket_id = 'post-media'
+    and private.is_page_member(
+      private.storage_page_id(name),
+      array['owner', 'manager']::public.page_role[]
+    )
+  );
+
+create policy post_media_staff_delete
+  on storage.objects
+  for delete
+  to authenticated
+  using (
+    bucket_id = 'post-media'
+    and private.is_page_member(
+      private.storage_page_id(name),
+      array['owner', 'manager']::public.page_role[]
+    )
+  );

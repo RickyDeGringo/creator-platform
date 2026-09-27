@@ -10,6 +10,7 @@ export type Viewer = {
   id: string;
   email: string | null;
   username: string | null;
+  isSuperadmin: boolean;
 };
 
 export type CreatorPage = {
@@ -27,9 +28,24 @@ export type Goal = {
   page_id: string;
   title: string;
   description: string | null;
+  link: string | null;
   target_amount: number | string;
   current_amount_raised: number | string;
   created_at: string;
+};
+
+export type PostImage = {
+  url: string;
+  width: number | null;
+  height: number | null;
+};
+
+export type PostGoal = {
+  id: string;
+  title: string;
+  link: string | null;
+  target_amount: number | string;
+  current_amount_raised: number | string;
 };
 
 export type FeedPost = {
@@ -37,6 +53,8 @@ export type FeedPost = {
   page_id: string;
   content: string | null;
   image_url: string | null;
+  images: PostImage[];
+  goals: PostGoal[];
   is_paywalled: boolean;
   is_locked: boolean;
   created_at: string;
@@ -47,6 +65,8 @@ export type ManagedPost = {
   page_id: string;
   content: string | null;
   image_url: string | null;
+  images: PostImage[];
+  goals: { id: string; title: string }[];
   is_paywalled: boolean;
   created_at: string;
 };

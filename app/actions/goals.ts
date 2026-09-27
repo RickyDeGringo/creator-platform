@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { httpsUrl } from "@/lib/format";
 import { getStaffPage } from "@/lib/staff";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
@@ -11,12 +12,22 @@ function refresh(slug: string) {
   revalidatePath(`/dashboard/${slug}`);
 }
 
+function optionalLink(formData: FormData): { error: string } | { link: string | null } {
+  const raw = String(formData.get("link") ?? "").trim();
+  if (!raw) return { link: null };
+  const link = httpsUrl(raw);
+  if (!link || link.length > 2000) return { error: "Goal link must start with https://." };
+  return { link };
+}
+
 export async function createGoal(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const access = await getStaffPage(slug);
   if (!access.ok) return { error: access.error };
 
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
+  const linked = optionalLink(formData);
+  if ("error" in linked) return { error: linked.error };
   const target = parseAmount(formData.get("target_amount"));
 
   if (title.length < 1 || title.length > 120) return { error: "Title must be 1–120 characters." };
@@ -28,6 +39,7 @@ export async function createGoal(slug: string, _prev: ActionState, formData: For
     page_id: access.page.id,
     title,
     description: description || null,
+    link: linked.link,
     target_amount: target,
     current_amount_raised: 0,
   });
@@ -37,7 +49,7 @@ export async function createGoal(slug: string, _prev: ActionState, formData: For
   return { success: "Goal created." };
 }
 
-export async function updateGoalAmount(
+export async function updateGoal(
   slug: string,
   goalId: string,
   _prev: ActionState,
@@ -48,17 +60,19 @@ export async function updateGoalAmount(
 
   const amount = parseAmount(formData.get("current_amount_raised"));
   if (amount == null) return { error: "Enter the amount raised, using numbers only." };
+  const linked = optionalLink(formData);
+  if ("error" in linked) return { error: linked.error };
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("goals")
-    .update({ current_amount_raised: amount })
+    .update({ current_amount_raised: amount, link: linked.link })
     .eq("id", goalId)
     .eq("page_id", access.page.id);
 
   if (error) return { error: friendlyDbError(error.message) };
   refresh(slug);
-  return { success: "Amount updated." };
+  return { success: "Goal updated." };
 }
 
 export async function deleteGoal(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {

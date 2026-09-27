@@ -1,10 +1,13 @@
+import { PostGallery } from "@/components/creator/post-gallery";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, httpsUrl } from "@/lib/format";
+import { formatDate, formatMoney, httpsUrl, progressPercent, supportLink } from "@/lib/format";
 import type { FeedPost } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 export function PostFeed({ posts, paypalLink }: { posts: FeedPost[]; paypalLink: string | null }) {
   const subscribeHref = httpsUrl(paypalLink);
+  const eagerId = posts.find((post) => !post.is_locked && post.images.length > 0)?.id;
 
   if (posts.length === 0) {
     return <p className="text-sm text-muted-foreground">No posts yet.</p>;
@@ -45,21 +48,67 @@ export function PostFeed({ posts, paypalLink }: { posts: FeedPost[]; paypalLink:
               <time dateTime={post.created_at}>{formatDate(post.created_at)}</time>
               {post.is_paywalled ? <Badge variant="secondary">Members</Badge> : null}
             </div>
-            {httpsUrl(post.image_url) ? (
-              // User-supplied URLs are not known at build time, so they stay outside next/image.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={httpsUrl(post.image_url) ?? ""}
-                alt=""
-                className="mb-4 max-h-96 w-full rounded-xl object-cover"
-              />
+            {post.images.length > 0 ? (
+              <div className="mb-4">
+                <PostGallery images={post.images} alt={photoAlt(post.content)} priority={post.id === eagerId} />
+              </div>
             ) : null}
             {post.content ? (
               <p className="text-base leading-7 whitespace-pre-wrap break-words">{post.content}</p>
+            ) : null}
+            {post.goals.length > 0 ? (
+              <ul className="mt-4 grid gap-2">
+                {post.goals.map((goal) => {
+                  const support = supportLink(goal.link, paypalLink);
+                  const pct = progressPercent(goal.current_amount_raised, goal.target_amount);
+                  return (
+                    <li
+                      key={goal.id}
+                      className="flex flex-col gap-3 rounded-xl bg-muted/70 p-3 sm:flex-row sm:items-center"
+                    >
+                      <div className="min-w-0 grow">
+                        <p className="truncate text-sm font-medium">{goal.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatMoney(goal.current_amount_raised)} of {formatMoney(goal.target_amount)}
+                        </p>
+                        <div
+                          role="progressbar"
+                          aria-valuenow={Math.round(pct)}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-label={`${goal.title} progress`}
+                          className="mt-2 h-1 overflow-hidden rounded-full bg-background"
+                        >
+                          <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                      {support ? (
+                        <a
+                          href={support.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={cn(buttonVariants({ size: "sm" }), "w-full sm:w-auto")}
+                        >
+                          {support.label}
+                        </a>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
             ) : null}
           </article>
         ),
       )}
     </div>
   );
+}
+
+function photoAlt(content: string | null) {
+  const line = content
+    ?.split("\n")
+    .map((part) => part.trim())
+    .find(Boolean);
+  if (!line) return "Post photo";
+  return line.length > 120 ? `${line.slice(0, 117)}…` : line;
 }

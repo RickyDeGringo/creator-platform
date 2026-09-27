@@ -1,9 +1,9 @@
 import { buttonVariants } from "@/components/ui/button";
-import { formatMoney, httpsUrl, progressPercent } from "@/lib/format";
+import { formatMoney, progressPercent, supportLink } from "@/lib/format";
 import type { Goal } from "@/lib/types";
 
 export function GoalList({ goals, paypalLink }: { goals: Goal[]; paypalLink: string | null }) {
-  const donateHref = httpsUrl(paypalLink);
+  const hasSupport = goals.some((goal) => supportLink(goal.link, paypalLink));
 
   if (goals.length === 0) {
     return <p className="text-sm text-muted-foreground">No active goals yet.</p>;
@@ -11,11 +11,12 @@ export function GoalList({ goals, paypalLink }: { goals: Goal[]; paypalLink: str
 
   return (
     <div className="grid gap-3">
-      {donateHref ? null : (
+      {hasSupport ? null : (
         <p className="text-sm text-muted-foreground">This creator has not added a payment link.</p>
       )}
       {goals.map((goal) => {
         const pct = progressPercent(goal.current_amount_raised, goal.target_amount);
+        const support = supportLink(goal.link, paypalLink);
         return (
           <article key={goal.id} className="rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
             <div className="flex items-start justify-between gap-3">
@@ -25,14 +26,14 @@ export function GoalList({ goals, paypalLink }: { goals: Goal[]; paypalLink: str
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">{goal.description}</p>
                 ) : null}
               </div>
-              {donateHref ? (
+              {support ? (
                 <a
-                  href={donateHref}
+                  href={support.href}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={buttonVariants({ size: "sm" })}
                 >
-                  Donate
+                  {support.label}
                 </a>
               ) : null}
             </div>

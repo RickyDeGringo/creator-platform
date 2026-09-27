@@ -39,7 +39,7 @@ export const loadCreatorPage = cache(async (slug: string): Promise<LoadCreatorRe
   const [goalsResult, feedResult, countResult, followResult] = await Promise.all([
     supabase
       .from("goals")
-      .select("id, page_id, title, description, target_amount, current_amount_raised, created_at")
+      .select("id, page_id, title, description, link, target_amount, current_amount_raised, created_at")
       .eq("page_id", page.id)
       .order("created_at", { ascending: false }),
     supabase.rpc("get_page_feed", { p_page_id: page.id, p_limit: 50 }),
