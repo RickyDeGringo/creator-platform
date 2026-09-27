@@ -28,54 +28,58 @@ export function GoalList({
         const support = supportLink(goal.link, paypalLink);
         const category = goal.category_id ? categoryNames?.[goal.category_id] : undefined;
         return (
-          <article key={goal.id} className="rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
-            {category ? (
-              <Badge variant="secondary" className="mb-3">
-                {category}
-              </Badge>
-            ) : null}
+          <article key={goal.id} className="flex items-start gap-4 rounded-2xl bg-card p-3 ring-1 ring-foreground/10 sm:p-4">
             {goal.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={goal.image_url}
                 alt=""
-                width={goal.image_width ?? undefined}
-                height={goal.image_height ?? undefined}
-                className="mb-3 h-44 w-full rounded-xl bg-muted object-contain"
+                width={goal.image_width ?? 400}
+                height={goal.image_height ?? 400}
+                className="size-28 shrink-0 rounded-xl bg-muted object-cover sm:size-36"
               />
-            ) : null}
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="font-heading text-2xl leading-tight">{goal.title}</h3>
-                {goal.description ? (
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{goal.description}</p>
+            ) : (
+              <div className="size-28 shrink-0 rounded-xl bg-muted sm:size-36" aria-hidden="true" />
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  {category ? (
+                    <Badge variant="secondary" className="mb-2">
+                      {category}
+                    </Badge>
+                  ) : null}
+                  <h3 className="font-heading text-2xl leading-tight">{goal.title}</h3>
+                  {goal.description ? (
+                    <p className="mt-1 text-sm leading-6 text-pretty text-muted-foreground">{goal.description}</p>
+                  ) : null}
+                </div>
+                {support ? (
+                  <a
+                    href={support.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={buttonVariants({ size: "sm" })}
+                  >
+                    {support.label}
+                  </a>
                 ) : null}
               </div>
-              {support ? (
-                <a
-                  href={support.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={buttonVariants({ size: "sm" })}
+              <div className="mt-3">
+                <div
+                  role="progressbar"
+                  aria-valuenow={Math.round(pct)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`${goal.title} progress`}
+                  className="h-2 overflow-hidden rounded-full bg-muted"
                 >
-                  {support.label}
-                </a>
-              ) : null}
-            </div>
-            <div className="mt-4">
-              <div
-                role="progressbar"
-                aria-valuenow={Math.round(pct)}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label={`${goal.title} progress`}
-                className="h-2 overflow-hidden rounded-full bg-muted"
-              >
-                <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                  <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {formatMoney(goal.current_amount_raised)} raised of {formatMoney(goal.target_amount)}
+                </p>
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {formatMoney(goal.current_amount_raised)} raised of {formatMoney(goal.target_amount)}
-              </p>
             </div>
           </article>
         );
