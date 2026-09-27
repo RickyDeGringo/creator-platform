@@ -1,9 +1,9 @@
 import { PostComments } from "@/components/creator/post-comments";
+import { PostFrame } from "@/components/creator/post-edit";
 import { PostGallery } from "@/components/creator/post-gallery";
 import { buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { formatDate, formatMoney, httpsUrl, progressPercent, supportLink } from "@/lib/format";
-import type { CommentAccess, FeedPost } from "@/lib/types";
+import { formatMoney, httpsUrl, progressPercent, supportLink } from "@/lib/format";
+import type { CommentAccess, FeedPost, Goal, WishlistCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function PostFeed({
@@ -11,11 +11,17 @@ export function PostFeed({
   paypalLink,
   slug,
   access,
+  canManage,
+  goals,
+  categories,
 }: {
   posts: FeedPost[];
   paypalLink: string | null;
   slug: string;
   access: CommentAccess;
+  canManage: boolean;
+  goals: Pick<Goal, "id" | "title" | "category_id">[];
+  categories: Pick<WishlistCategory, "id" | "name">[];
 }) {
   const subscribeHref = httpsUrl(paypalLink);
   const eagerId = posts.find((post) => !post.is_locked && post.images.length > 0)?.id;
@@ -55,10 +61,7 @@ export function PostFeed({
           </article>
         ) : (
           <article key={post.id} className="rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
-            <div className="mb-3 flex items-center justify-between gap-3 text-sm text-muted-foreground">
-              <time dateTime={post.created_at}>{formatDate(post.created_at)}</time>
-              {post.is_paywalled ? <Badge variant="secondary">Members</Badge> : null}
-            </div>
+            <PostFrame slug={slug} post={post} canManage={canManage} goals={goals} categories={categories}>
             {post.images.length > 0 ? (
               <div className="mb-4">
                 <PostGallery images={post.images} alt={photoAlt(post.content)} priority={post.id === eagerId} />
@@ -119,6 +122,7 @@ export function PostFeed({
               </ul>
             ) : null}
             <PostComments slug={slug} postId={post.id} comments={post.comments} access={access} />
+            </PostFrame>
           </article>
         ),
       )}

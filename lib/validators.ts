@@ -108,7 +108,7 @@ export function friendlyDbError(message: string) {
   if (message.includes("post_locked")) return "Subscribe to comment on this post.";
   if (message.includes("comment_thread")) return "Reply to the original comment.";
   if (message.includes("comment_length")) return "Comments can be up to 1000 characters.";
-  if (message.includes("too_many_goals")) return "Attach up to 6 goals.";
+  if (message.includes("too_many_goals")) return "Attach up to 6 wishlist items.";
   if (message.includes("goal_page_mismatch")) return "Choose goals from this page.";
   if (message.includes("too_many_categories")) return "A page can have 24 wishlist categories.";
   if (message.includes("category_page_mismatch")) return "Choose a category from this page.";

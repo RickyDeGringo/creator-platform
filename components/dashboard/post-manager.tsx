@@ -4,22 +4,25 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { createPost, deletePost } from "@/app/actions/posts";
 import { FormMessage } from "@/components/form-message";
 import { PhotoField, type PhotoFieldHandle } from "@/components/dashboard/photo-field";
+import { WishlistItemPicker } from "@/components/dashboard/wishlist-item-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate } from "@/lib/format";
-import type { Goal, ManagedPost } from "@/lib/types";
+import type { Goal, ManagedPost, WishlistCategory } from "@/lib/types";
 
 export function PostManager({
   slug,
   posts,
   goals,
+  categories,
 }: {
   slug: string;
   posts: ManagedPost[];
-  goals: Pick<Goal, "id" | "title">[];
+  goals: Pick<Goal, "id" | "title" | "category_id">[];
+  categories: Pick<WishlistCategory, "id" | "name">[];
 }) {
   const [state, action, pending] = useActionState(createPost.bind(null, slug), null);
   const [deleteState, deleteAction] = useActionState(deletePost.bind(null, slug), null);
@@ -61,23 +64,7 @@ export function PostManager({
           <p className="text-sm text-muted-foreground">Optional. Uploaded photos load faster than a pasted link.</p>
         </div>
 
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium">Attach goals</legend>
-          {goals.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Create a goal below, then pin it to a post. A ride update can point people at a new saddle and a new bell.
-            </p>
-          ) : (
-            <div className="grid max-h-48 gap-2 overflow-y-auto rounded-xl bg-muted/50 p-3">
-              {goals.map((goal) => (
-                <label key={goal.id} className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="goal_ids" value={goal.id} className="size-4" />
-                  <span className="truncate">{goal.title}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </fieldset>
+        <WishlistItemPicker goals={goals} categories={categories} revision={state} />
 
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="is_paywalled" className="size-4" />

@@ -69,7 +69,7 @@ export async function createPost(slug: string, _prev: ActionState, formData: For
   if (photos.some((photo) => photo.size > PHOTO_UPLOAD_MAX_BYTES)) {
     return { error: "That photo is still too large after resizing." };
   }
-  if (goalIds.length > MAX_GOALS) return { error: "Attach up to 6 goals." };
+  if (goalIds.length > MAX_GOALS) return { error: "Attach up to 6 wishlist items." };
   if (!content && !imageUrl && photos.length === 0) return { error: "Add text, a photo, or an image URL." };
 
   const supabase = await createClient();
@@ -78,7 +78,7 @@ export async function createPost(slug: string, _prev: ActionState, formData: For
     const { data, error } = await supabase.from("goals").select("id").eq("page_id", access.page.id).in("id", goalIds);
     if (error) return { error: friendlyDbError(error.message) };
     const found = new Set((data ?? []).map((row) => String(row.id)));
-    if (goalIds.some((id) => !found.has(id))) return { error: "Choose goals from this page." };
+    if (goalIds.some((id) => !found.has(id))) return { error: "Choose wishlist items from this page." };
   }
 
   let prepared: { buffer: Buffer; width: number; height: number }[] = [];
@@ -190,6 +190,105 @@ export async function createPost(slug: string, _prev: ActionState, formData: For
 
   refresh(slug);
   return { success: isPaywalled ? "Paywalled post published." : "Post published." };
+}
+
+function publishedInstant(value: FormDataEntryValue | null) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value ?? "").trim());
+  if (!match) return { error: "Pick a published date." };
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const at = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  if (at.getUTCFullYear() !== year || at.getUTCMonth() !== month - 1 || at.getUTCDate() !== day) {
+    return { error: "Pick a published date." };
+  }
+  if (year < 2000) return { error: "Pick a published date from 2000 onward." };
+  const now = new Date();
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12, 0, 0);
+  if (at.getTime() > today) return { error: "Published date can't be in the future." };
+  return { at: at.toISOString() };
+}
+
+export async function updatePost(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const access = await getStaffPage(slug);
+  if (!access.ok) return { error: access.error };
+
+  const postId = String(formData.get("postId") ?? "");
+  if (!UUID.test(postId)) return { error: "Missing post." };
+
+  const content = String(formData.get("content") ?? "").trim();
+  if (content.length > 5000) return { error: "Posts are limited to 5000 characters." };
+  const published = publishedInstant(formData.get("published_on"));
+  if ("error" in published) return { error: published.error };
+
+  const supabase = await createClient();
+  const { data: existing, error: loadError } = await supabase
+    .from("posts")
+    .select("id, image_url")
+    .eq("id", postId)
+    .eq("page_id", access.page.id)
+    .maybeSingle();
+  if (loadError) return { error: friendlyDbError(loadError.message) };
+  if (!existing) return { error: "That post is gone." };
+  if (!content && !existing.image_url) return { error: "Add text, or keep a photo on the post." };
+
+  const { error } = await supabase
+    .from("posts")
+    .update({
+      content: content || null,
+      created_at: published.at,
+    })
+    .eq("id", postId)
+    .eq("page_id", access.page.id);
+  if (error) return { error: friendlyDbError(error.message) };
+
+  const goalError = await replacePostGoals(supabase, access.page.id, postId, goalIdsFromForm(formData));
+  refresh(slug);
+  if (goalError) return { error: goalError };
+  return { success: "Post updated." };
+}
+
+async function replacePostGoals(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  pageId: string,
+  postId: string,
+  goalIds: string[],
+) {
+  if (goalIds.length > MAX_GOALS) return "Attach up to 6 wishlist items.";
+  if (goalIds.length > 0) {
+    const { data, error } = await supabase.from("goals").select("id").eq("page_id", pageId).in("id", goalIds);
+    if (error) return friendlyDbError(error.message);
+    const found = new Set((data ?? []).map((row) => String(row.id)));
+    if (goalIds.some((id) => !found.has(id))) return "Choose wishlist items from this page.";
+  }
+
+  const { data: previous, error: loadError } = await supabase
+    .from("post_goals")
+    .select("goal_id, sort_order")
+    .eq("post_id", postId);
+  if (loadError) return friendlyDbError(loadError.message);
+
+  const { error: deleteError } = await supabase.from("post_goals").delete().eq("post_id", postId);
+  if (deleteError) return friendlyDbError(deleteError.message);
+
+  if (goalIds.length === 0) return null;
+
+  const { error: insertError } = await supabase.from("post_goals").insert(
+    goalIds.map((goalId, index) => ({
+      post_id: postId,
+      goal_id: goalId,
+      sort_order: index,
+    })),
+  );
+  if (!insertError) return null;
+
+  const restore = (previous ?? []).flatMap((row) => {
+    const goalId = String(row.goal_id ?? "");
+    if (!UUID.test(goalId)) return [];
+    return [{ post_id: postId, goal_id: goalId, sort_order: Number(row.sort_order) || 0 }];
+  });
+  if (restore.length > 0) await supabase.from("post_goals").insert(restore);
+  return friendlyDbError(insertError.message);
 }
 
 export async function deletePost(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {

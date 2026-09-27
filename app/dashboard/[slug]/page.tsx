@@ -155,6 +155,10 @@ export default async function DashboardSlugPage({ params }: Props) {
             slug={page.slug}
             posts={(postsResult.data ?? []).map(toManagedPost)}
             goals={(goalsResult.data ?? []).map(toGoal)}
+            categories={(categoriesResult.data ?? []).flatMap((row) => {
+              const category = toWishlistCategory(row);
+              return category ? [category] : [];
+            })}
           />
         }
         wishlist={

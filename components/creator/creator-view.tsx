@@ -20,6 +20,7 @@ export function CreatorView({
   goals,
   categories,
   posts,
+  canManage,
   notice,
 }: {
   slug: string;
@@ -35,6 +36,7 @@ export function CreatorView({
   goals: Goal[];
   categories: WishlistCategory[];
   posts: FeedPost[];
+  canManage: boolean;
   notice?: string | null;
 }) {
   return (
@@ -59,7 +61,17 @@ export function CreatorView({
 
         <CreatorTabs
           wishlist={<WishlistBoard goals={goals} categories={categories} paypalLink={paypalLink} />}
-          posts={<PostFeed posts={posts} paypalLink={paypalLink} slug={slug} access={commentAccess} />}
+          posts={
+            <PostFeed
+              posts={posts}
+              paypalLink={paypalLink}
+              slug={slug}
+              access={commentAccess}
+              canManage={canManage}
+              goals={goals}
+              categories={categories}
+            />
+          }
         />
       </div>
     </div>

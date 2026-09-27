@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { isSupabaseConfigured } from "@/lib/env";
 import { httpsUrl } from "@/lib/format";
-import { commentThreads, toFeedPost, toGoal, toPage, toPostImage, toWishlistCategory } from "@/lib/rows";
+import { commentThreads, toFeedPost, toGoal, toPage, toPostImage, toRole, toWishlistCategory } from "@/lib/rows";
 import { createClient } from "@/lib/supabase/server";
 import type { CreatorPage, FeedPost, Goal, PostImage, Viewer, WishlistCategory } from "@/lib/types";
 import { getViewer } from "@/lib/viewer";
@@ -15,6 +15,7 @@ export type CreatorPageData = {
   followerCount: number;
   isFollowing: boolean;
   isMember: boolean;
+  canManage: boolean;
   viewer: Viewer | null;
 };
 
@@ -126,6 +127,7 @@ export const loadCreatorPage = cache(async (slug: string): Promise<LoadCreatorRe
       followerCount: countResult.count ?? 0,
       isFollowing: Boolean(followResult.data),
       isMember: Boolean(memberResult.data),
+      canManage: toRole(memberResult.data?.role) != null,
       viewer,
     },
   };

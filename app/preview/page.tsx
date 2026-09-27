@@ -184,6 +184,7 @@ export default function PreviewPage() {
         goals={goals}
         categories={categories}
         posts={posts}
+        canManage={false}
         notice={null}
       />
       <div className="mx-auto w-full max-w-3xl space-y-12 px-4 pb-20">
@@ -193,7 +194,7 @@ export default function PreviewPage() {
         </section>
         <section className="space-y-4">
           <h2 className="font-heading text-3xl">Posts</h2>
-          <PostManager slug="preview" posts={managedPosts} goals={goals} />
+          <PostManager slug="preview" posts={managedPosts} goals={goals} categories={categories} />
         </section>
         <section className="space-y-4">
           <h2 className="font-heading text-3xl">Wishlist</h2>
