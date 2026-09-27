@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { formatDate } from "@/lib/format";
+import { PublishedAtField } from "@/components/published-at-field";
+import { formatTimestamp } from "@/lib/format";
 import type { Goal, ManagedPost, WishlistCategory } from "@/lib/types";
 
 export function PostManager({
@@ -64,6 +65,8 @@ export function PostManager({
           <p className="text-sm text-muted-foreground">Optional. Uploaded photos load faster than a pasted link.</p>
         </div>
 
+        <PublishedAtField id="published-at" revision={state} />
+
         <WishlistItemPicker goals={goals} categories={categories} revision={state} />
 
         <label className="flex items-center gap-2 text-sm">
@@ -82,8 +85,8 @@ export function PostManager({
         {posts.map((post) => (
           <article key={post.id} className="rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
             <div className="mb-2 flex items-center justify-between gap-3">
-              <time className="text-sm text-muted-foreground" dateTime={post.created_at}>
-                {formatDate(post.created_at)}
+              <time className="text-sm text-muted-foreground" dateTime={post.created_at} suppressHydrationWarning>
+                {formatTimestamp(post.created_at)}
               </time>
               {post.is_paywalled ? <Badge variant="secondary">Paywalled</Badge> : <Badge variant="outline">Public</Badge>}
             </div>

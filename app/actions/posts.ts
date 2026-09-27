@@ -71,6 +71,8 @@ export async function createPost(slug: string, _prev: ActionState, formData: For
   }
   if (goalIds.length > MAX_GOALS) return { error: "Attach up to 6 wishlist items." };
   if (!content && !imageUrl && photos.length === 0) return { error: "Add text, a photo, or an image URL." };
+  const published = publishedInstant(formData.get("published_at"), formData.get("timezone_offset"));
+  if ("error" in published) return { error: published.error };
 
   const supabase = await createClient();
 
@@ -126,6 +128,7 @@ export async function createPost(slug: string, _prev: ActionState, formData: For
       content: content || null,
       image_url: cover,
       is_paywalled: isPaywalled,
+      created_at: published.at,
     })
     .select("id")
     .single();
@@ -192,20 +195,35 @@ export async function createPost(slug: string, _prev: ActionState, formData: For
   return { success: isPaywalled ? "Paywalled post published." : "Post published." };
 }
 
-function publishedInstant(value: FormDataEntryValue | null) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value ?? "").trim());
-  if (!match) return { error: "Pick a published date." };
+function publishedInstant(value: FormDataEntryValue | null, offsetValue: FormDataEntryValue | null) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(String(value ?? "").trim());
+  if (!match) return { error: "Pick a published date and time." };
+  const offset = Number(String(offsetValue ?? "").trim());
+  if (!Number.isInteger(offset) || offset < -14 * 60 || offset > 14 * 60) {
+    return { error: "Pick a published date and time." };
+  }
+
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
-  const at = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-  if (at.getUTCFullYear() !== year || at.getUTCMonth() !== month - 1 || at.getUTCDate() !== day) {
-    return { error: "Pick a published date." };
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  if (hour > 23 || minute > 59) return { error: "Pick a published date and time." };
+
+  const wall = new Date(Date.UTC(year, month - 1, day, hour, minute));
+  if (
+    wall.getUTCFullYear() !== year ||
+    wall.getUTCMonth() !== month - 1 ||
+    wall.getUTCDate() !== day ||
+    wall.getUTCHours() !== hour ||
+    wall.getUTCMinutes() !== minute
+  ) {
+    return { error: "Pick a published date and time." };
   }
   if (year < 2000) return { error: "Pick a published date from 2000 onward." };
-  const now = new Date();
-  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12, 0, 0);
-  if (at.getTime() > today) return { error: "Published date can't be in the future." };
+
+  const at = new Date(wall.getTime() + offset * 60 * 1000);
+  if (at.getTime() > Date.now() + 5 * 60 * 1000) return { error: "Published time can't be in the future." };
   return { at: at.toISOString() };
 }
 
@@ -218,7 +236,7 @@ export async function updatePost(slug: string, _prev: ActionState, formData: For
 
   const content = String(formData.get("content") ?? "").trim();
   if (content.length > 5000) return { error: "Posts are limited to 5000 characters." };
-  const published = publishedInstant(formData.get("published_on"));
+  const published = publishedInstant(formData.get("published_at"), formData.get("timezone_offset"));
   if ("error" in published) return { error: published.error };
 
   const supabase = await createClient();

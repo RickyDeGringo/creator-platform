@@ -178,8 +178,14 @@ export async function updateGoal(
   const access = await getStaffPage(slug);
   if (!access.ok) return { error: access.error };
 
+  const title = String(formData.get("title") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
   const amount = parseAmount(formData.get("current_amount_raised"));
+  const target = parseAmount(formData.get("target_amount"));
+  if (title.length < 1 || title.length > 120) return { error: "Title must be 1–120 characters." };
+  if (description.length > 1000) return { error: "Keep the description under 1000 characters." };
   if (amount == null) return { error: "Enter the amount raised, using numbers only." };
+  if (target == null || target <= 0) return { error: "Enter a target amount greater than 0." };
   const linked = optionalLink(formData);
   if ("error" in linked) return { error: linked.error };
 
@@ -200,13 +206,22 @@ export async function updateGoal(
   if ("error" in photo) return { error: photo.error };
 
   const patch: {
+    title: string;
+    description: string | null;
     current_amount_raised: number;
+    target_amount: number;
     link: string | null;
     image_url?: string | null;
     image_storage_path?: string | null;
     image_width?: number | null;
     image_height?: number | null;
-  } = { current_amount_raised: amount, link: linked.link };
+  } = {
+    title,
+    description: description || null,
+    current_amount_raised: amount,
+    target_amount: target,
+    link: linked.link,
+  };
 
   if ("image" in photo) {
     patch.image_url = photo.image?.url ?? null;
@@ -222,6 +237,29 @@ export async function updateGoal(
   if (tagsError) return { error: tagsError };
   refresh(slug);
   return { success: "Goal updated." };
+}
+
+export async function updateGoalRaised(
+  slug: string,
+  goalId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const access = await getStaffPage(slug);
+  if (!access.ok) return { error: access.error };
+
+  const amount = parseAmount(formData.get("current_amount_raised"));
+  if (amount == null) return { error: "Enter the amount raised, using numbers only." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("goals")
+    .update({ current_amount_raised: amount })
+    .eq("id", goalId)
+    .eq("page_id", access.page.id);
+  if (error) return { error: friendlyDbError(error.message) };
+  refresh(slug);
+  return { success: "Amount saved." };
 }
 
 export async function deleteGoal(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {

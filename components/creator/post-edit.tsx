@@ -6,10 +6,10 @@ import { WishlistItemPicker } from "@/components/dashboard/wishlist-item-picker"
 import { FormMessage } from "@/components/form-message";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { formatDate, utcDateInputValue } from "@/lib/format";
+import { PublishedAtField } from "@/components/published-at-field";
+import { formatTimestamp } from "@/lib/format";
 import type { FeedPost, Goal, WishlistCategory } from "@/lib/types";
 
 export function PostFrame({
@@ -37,7 +37,9 @@ export function PostFrame({
   return (
     <>
       <div className="mb-3 flex items-center justify-between gap-3 text-sm text-muted-foreground">
-        <time dateTime={post.created_at}>{formatDate(post.created_at)}</time>
+        <time dateTime={post.created_at} suppressHydrationWarning>
+          {formatTimestamp(post.created_at)}
+        </time>
         <div className="flex items-center gap-2">
           {canManage ? (
             <Button type="button" variant="ghost" size="sm" onClick={() => setOpen((current) => !current)}>
@@ -54,19 +56,7 @@ export function PostFrame({
             <Label htmlFor={`content-${post.id}`}>Post</Label>
             <Textarea id={`content-${post.id}`} name="content" defaultValue={post.content ?? ""} className="min-h-28" />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor={`published-${post.id}`}>Published</Label>
-            <Input
-              id={`published-${post.id}`}
-              name="published_on"
-              type="date"
-              required
-              min="2000-01-01"
-              max={utcDateInputValue(new Date().toISOString())}
-              defaultValue={utcDateInputValue(post.created_at)}
-              className="h-10"
-            />
-          </div>
+          <PublishedAtField id={`published-${post.id}`} iso={post.created_at} />
           <WishlistItemPicker
             goals={goals}
             categories={categories}
