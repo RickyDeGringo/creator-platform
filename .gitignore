@@ -36,6 +36,10 @@ yarn-error.log*
 
 # vercel
 .vercel
+.vercel-inspect.json
+
+# supabase CLI scratch
+supabase/.temp/
 
 # typescript
 *.tsbuildinfo
