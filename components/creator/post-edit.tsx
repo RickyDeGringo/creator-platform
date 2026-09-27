@@ -23,7 +23,7 @@ export function PostFrame({
   slug: string;
   post: Pick<FeedPost, "id" | "content" | "created_at" | "is_paywalled" | "goals">;
   canManage: boolean;
-  goals: Pick<Goal, "id" | "title" | "category_id">[];
+  goals: Pick<Goal, "id" | "title" | "category_ids">[];
   categories: Pick<WishlistCategory, "id" | "name">[];
   children: ReactNode;
 }) {

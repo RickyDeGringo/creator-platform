@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AccessManager } from "@/components/dashboard/access-manager";
 import { DashboardTabs } from "@/components/dashboard/dashboard-tabs";
+import { DesignManager } from "@/components/dashboard/design-manager";
 import { GoalManager } from "@/components/dashboard/goal-manager";
 import { MemberManager } from "@/components/dashboard/member-manager";
 import { PageDetailsForm } from "@/components/dashboard/page-forms";
@@ -13,6 +14,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/env";
 import { toAccessCode, toCoverImage, toGoal, toManagedPost, toPage, toPageMember, toRole, toWishlistCategory } from "@/lib/rows";
 import { createClient } from "@/lib/supabase/server";
+import { friendlyDbError } from "@/lib/validators";
 import { getViewer } from "@/lib/viewer";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -37,11 +39,20 @@ export default async function DashboardSlugPage({ params }: Props) {
   if (!viewer) redirect(`/login?next=/dashboard/${slug}`);
 
   const supabase = await createClient();
-  const { data: pageRow } = await supabase
+  const { data: pageRow, error: pageError } = await supabase
     .from("creator_pages")
-    .select("id, slug, display_name, bio, cover_image, paypal_link, created_at")
+    .select("id, slug, display_name, bio, cover_image, paypal_link, palette, font, created_at")
     .eq("slug", slug)
     .maybeSingle();
+
+  if (pageError) {
+    return (
+      <div className="mx-auto w-full max-w-xl px-4 py-24 text-center">
+        <h1 className="font-heading text-5xl">Page unavailable</h1>
+        <p className="mt-3 text-muted-foreground">{friendlyDbError(pageError.message)}</p>
+      </div>
+    );
+  }
 
   if (!pageRow) notFound();
   const page = toPage(pageRow);
@@ -77,7 +88,7 @@ export default async function DashboardSlugPage({ params }: Props) {
     supabase
       .from("goals")
       .select(
-        "id, page_id, category_id, title, description, link, image_url, image_storage_path, image_width, image_height, target_amount, current_amount_raised, created_at",
+        "id, page_id, title, description, link, image_url, image_storage_path, image_width, image_height, target_amount, current_amount_raised, created_at, goal_categories(category_id)",
       )
       .eq("page_id", page.id)
       .order("created_at", { ascending: false }),
@@ -148,6 +159,15 @@ export default async function DashboardSlugPage({ params }: Props) {
               const cover = toCoverImage(row);
               return cover ? [cover] : [];
             })}
+          />
+        }
+        design={
+          <DesignManager
+            slug={page.slug}
+            displayName={page.display_name}
+            bio={page.bio}
+            palette={page.palette}
+            font={page.font}
           />
         }
         posts={

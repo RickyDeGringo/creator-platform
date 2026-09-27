@@ -20,6 +20,8 @@ export type CreatorPage = {
   bio: string | null;
   cover_image: string | null;
   paypal_link: string | null;
+  palette: string;
+  font: string;
   created_at: string;
 };
 
@@ -33,7 +35,7 @@ export type WishlistCategory = {
 export type Goal = {
   id: string;
   page_id: string;
-  category_id: string | null;
+  category_ids: string[];
   title: string;
   description: string | null;
   link: string | null;

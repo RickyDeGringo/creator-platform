@@ -7,6 +7,7 @@
 --     or by the database owner. Signed-in users cannot change that column.
 --   * Creating a creator page inserts the current user as owner.
 --   * Owners and managers share the dashboard.
+--   * palette and font are named design presets on the public page.
 --   * Owners add a manager with add_page_manager. The email must already
 --     belong to an account; email stays in auth.users.
 --   * list_page_staff is the public read of owner and manager usernames.
@@ -72,12 +73,20 @@ create table public.creator_pages (
   bio text,
   cover_image text,
   paypal_link text,
+  palette text not null default 'ember',
+  font text not null default 'editorial',
   created_at timestamptz not null default now(),
   constraint creator_pages_slug_unique unique (slug),
   constraint creator_pages_slug_format check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
   constraint creator_pages_display_name_length check (char_length(trim(display_name)) between 1 and 80),
   constraint creator_pages_paypal_link_https check (
     paypal_link is null or paypal_link ~ '^https://'
+  ),
+  constraint creator_pages_palette_known check (
+    palette in ('ember', 'ink', 'paper', 'grove', 'tide', 'plum', 'dune', 'midnight')
+  ),
+  constraint creator_pages_font_known check (
+    font in ('editorial', 'newsroom', 'story', 'gallery', 'studio', 'letterpress')
   )
 );
 
@@ -155,7 +164,6 @@ create table public.wishlist_categories (
 create table public.goals (
   id uuid primary key default gen_random_uuid(),
   page_id uuid not null references public.creator_pages (id) on delete cascade,
-  category_id uuid references public.wishlist_categories (id) on delete set null,
   title text not null,
   description text,
   link text,
@@ -183,6 +191,12 @@ create table public.goals (
     image_storage_path is null
     or image_storage_path ~ '^[0-9a-f-]{36}/goals/[0-9a-f-]{36}\.webp$'
   )
+);
+
+create table public.goal_categories (
+  goal_id uuid not null references public.goals (id) on delete cascade,
+  category_id uuid not null references public.wishlist_categories (id) on delete cascade,
+  primary key (goal_id, category_id)
 );
 
 create table public.cover_images (
@@ -244,7 +258,7 @@ create unique index wishlist_categories_page_name_key
   on public.wishlist_categories (page_id, lower(name));
 create index wishlist_categories_page_idx on public.wishlist_categories (page_id, lower(name));
 create index goals_page_created_idx on public.goals (page_id, created_at desc);
-create index goals_category_idx on public.goals (category_id);
+create index goal_categories_category_idx on public.goal_categories (category_id);
 create index access_codes_page_created_idx on public.access_codes (page_id, created_at desc);
 create index post_images_post_idx on public.post_images (post_id, sort_order);
 create index cover_images_page_idx on public.cover_images (page_id, sort_order);
@@ -537,18 +551,29 @@ language plpgsql
 security definer
 set search_path = public, pg_catalog
 as $$
+declare
+  v_goal_page uuid;
+  v_category_page uuid;
+  v_count integer;
 begin
-  if new.category_id is null then
-    return new;
+  select g.page_id into v_goal_page
+  from public.goals g
+  where g.id = new.goal_id;
+
+  select c.page_id into v_category_page
+  from public.wishlist_categories c
+  where c.id = new.category_id;
+
+  if v_goal_page is null or v_category_page is null or v_goal_page is distinct from v_category_page then
+    raise exception 'category_page_mismatch' using errcode = '42501';
   end if;
 
-  if not exists (
-    select 1
-    from public.wishlist_categories c
-    where c.id = new.category_id
-      and c.page_id = new.page_id
-  ) then
-    raise exception 'category_page_mismatch' using errcode = '42501';
+  select count(*) into v_count
+  from public.goal_categories
+  where goal_id = new.goal_id;
+
+  if v_count >= 8 then
+    raise exception 'too_many_goal_tags' using errcode = '54000';
   end if;
 
   return new;
@@ -557,8 +582,8 @@ $$;
 
 revoke all on function private.guard_goal_category() from public, anon, authenticated;
 
-create trigger goals_category_guard
-  before insert or update of category_id, page_id on public.goals
+create trigger goal_categories_guard
+  before insert on public.goal_categories
   for each row execute function private.guard_goal_category();
 
 create or replace function private.guard_post_image()
@@ -1092,6 +1117,7 @@ alter table public.posts enable row level security;
 alter table public.access_codes enable row level security;
 alter table public.goals enable row level security;
 alter table public.wishlist_categories enable row level security;
+alter table public.goal_categories enable row level security;
 alter table public.post_images enable row level security;
 alter table public.cover_images enable row level security;
 alter table public.post_goals enable row level security;
@@ -1353,6 +1379,38 @@ create policy wishlist_categories_delete_staff
   to authenticated
   using (private.is_page_member(page_id, array['owner', 'manager']::public.page_role[]));
 
+create policy goal_categories_select_public
+  on public.goal_categories
+  for select
+  to anon, authenticated
+  using (true);
+
+create policy goal_categories_insert_staff
+  on public.goal_categories
+  for insert
+  to authenticated
+  with check (
+    exists (
+      select 1
+      from public.goals g
+      where g.id = goal_id
+        and private.is_page_member(g.page_id, array['owner', 'manager']::public.page_role[])
+    )
+  );
+
+create policy goal_categories_delete_staff
+  on public.goal_categories
+  for delete
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.goals g
+      where g.id = goal_id
+        and private.is_page_member(g.page_id, array['owner', 'manager']::public.page_role[])
+    )
+  );
+
 create policy cover_images_select_public
   on public.cover_images
   for select
@@ -1472,6 +1530,9 @@ grant insert, update, delete on public.goals to authenticated;
 
 grant select on public.wishlist_categories to anon, authenticated;
 grant insert, update, delete on public.wishlist_categories to authenticated;
+
+grant select on public.goal_categories to anon, authenticated;
+grant insert, delete on public.goal_categories to authenticated;
 
 grant select on public.cover_images to anon, authenticated;
 grant insert, delete on public.cover_images to authenticated;

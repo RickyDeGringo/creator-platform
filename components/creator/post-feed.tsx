@@ -20,7 +20,7 @@ export function PostFeed({
   slug: string;
   access: CommentAccess;
   canManage: boolean;
-  goals: Pick<Goal, "id" | "title" | "category_id">[];
+  goals: Pick<Goal, "id" | "title" | "category_ids">[];
   categories: Pick<WishlistCategory, "id" | "name">[];
 }) {
   const subscribeHref = httpsUrl(paypalLink);

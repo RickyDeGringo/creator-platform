@@ -1,4 +1,5 @@
 import { httpsUrl } from "@/lib/format";
+import { pageFont, pagePalette } from "@/lib/page-theme";
 import type {
   AccessCode,
   CoverImage,
@@ -27,6 +28,8 @@ export function toPage(value: unknown): CreatorPage {
     bio: row.bio == null ? null : String(row.bio),
     cover_image: row.cover_image == null ? null : String(row.cover_image),
     paypal_link: row.paypal_link == null ? null : String(row.paypal_link),
+    palette: pagePalette(row.palette),
+    font: pageFont(row.font),
     created_at: String(row.created_at),
   };
 }
@@ -48,7 +51,7 @@ export function toGoal(value: unknown): Goal {
   return {
     id: String(row.id),
     page_id: String(row.page_id),
-    category_id: row.category_id == null || row.category_id === "" ? null : String(row.category_id),
+    category_ids: categoryIds(row.goal_categories),
     title: String(row.title),
     description: row.description == null ? null : String(row.description),
     link: httpsUrl(row.link == null ? null : String(row.link)),
@@ -60,6 +63,15 @@ export function toGoal(value: unknown): Goal {
     current_amount_raised: row.current_amount_raised as number | string,
     created_at: String(row.created_at),
   };
+}
+
+function categoryIds(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  const ids = value.flatMap((item) => {
+    const id = record(item).category_id;
+    return typeof id === "string" && id ? [id] : [];
+  });
+  return [...new Set(ids)];
 }
 
 function positiveInt(value: unknown) {

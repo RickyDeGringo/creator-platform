@@ -21,7 +21,7 @@ export function PostManager({
 }: {
   slug: string;
   posts: ManagedPost[];
-  goals: Pick<Goal, "id" | "title" | "category_id">[];
+  goals: Pick<Goal, "id" | "title" | "category_ids">[];
   categories: Pick<WishlistCategory, "id" | "name">[];
 }) {
   const [state, action, pending] = useActionState(createPost.bind(null, slug), null);

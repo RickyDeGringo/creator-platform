@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isSupabaseConfigured } from "@/lib/env";
 import { httpsUrl } from "@/lib/format";
 import { PHOTO_MAX_COUNT } from "@/lib/photo-frame";
+import { isPageFont, isPagePalette } from "@/lib/page-theme";
 import { getStaffPage } from "@/lib/staff";
 import { photoFiles, removeStored, storePhotos } from "@/lib/store-photos";
 import { createClient } from "@/lib/supabase/server";
@@ -202,4 +203,21 @@ export async function updatePage(slug: string, _prev: ActionState, formData: For
   revalidatePath(`/${slug}`);
   revalidatePath(`/dashboard/${slug}`);
   return { success: "Page details saved." };
+}
+
+export async function updatePageDesign(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const access = await getStaffPage(slug);
+  if (!access.ok) return { error: access.error };
+
+  const palette = String(formData.get("palette") ?? "");
+  const font = String(formData.get("font") ?? "");
+  if (!isPagePalette(palette) || !isPageFont(font)) return { error: "Choose a palette and a font from the list." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("creator_pages").update({ palette, font }).eq("id", access.page.id);
+  if (error) return { error: friendlyDbError(error.message) };
+
+  revalidatePath(`/${slug}`);
+  revalidatePath(`/dashboard/${slug}`);
+  return { success: "Page design saved." };
 }

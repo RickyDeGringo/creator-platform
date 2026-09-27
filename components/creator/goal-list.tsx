@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { formatMoney, progressPercent, supportLink } from "@/lib/format";
 import type { Goal } from "@/lib/types";
@@ -26,7 +25,12 @@ export function GoalList({
       {goals.map((goal) => {
         const pct = progressPercent(goal.current_amount_raised, goal.target_amount);
         const support = supportLink(goal.link, paypalLink);
-        const category = goal.category_id ? categoryNames?.[goal.category_id] : undefined;
+        const tags = (goal.category_ids ?? [])
+          .flatMap((id) => {
+            const name = categoryNames?.[id];
+            return name ? [{ id, name }] : [];
+          })
+          .sort((a, b) => a.name.localeCompare(b.name));
         return (
           <article key={goal.id} className="flex items-start gap-4 rounded-2xl bg-card p-3 ring-1 ring-foreground/10 sm:p-4">
             {goal.image_url ? (
@@ -44,10 +48,17 @@ export function GoalList({
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  {category ? (
-                    <Badge variant="secondary" className="mb-2">
-                      {category}
-                    </Badge>
+                  {tags.length > 0 ? (
+                    <div className="mb-2 flex flex-wrap gap-1.5">
+                      {tags.map((tag) => (
+                        <span
+                          key={tag.id}
+                          className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground/75"
+                        >
+                          {tag.name}
+                        </span>
+                      ))}
+                    </div>
                   ) : null}
                   <h3 className="font-heading text-2xl leading-tight">{goal.title}</h3>
                   {goal.description ? (

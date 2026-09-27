@@ -9,7 +9,7 @@ export function CoverBanner({ images }: { images: PostImage[] }) {
 
   if (!current) {
     return (
-      <div className="h-64 bg-[radial-gradient(circle_at_top_left,oklch(0.55_0.16_40),transparent_42%),linear-gradient(160deg,oklch(0.28_0.03_70),oklch(0.16_0.012_65))] sm:h-80" />
+      <div className="cover-fallback h-64 sm:h-80" />
     );
   }
 

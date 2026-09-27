@@ -135,3 +135,20 @@
     color-scheme: dark;
   }
 }
+
+.page-theme {
+  background-color: var(--background);
+  color: var(--foreground);
+  background-image: radial-gradient(900px 420px at 0% -10%, var(--page-glow), transparent 55%);
+  font-family: var(--page-body);
+}
+
+.page-theme .font-heading {
+  font-family: var(--page-heading);
+}
+
+.cover-fallback {
+  background-image:
+    radial-gradient(circle at top left, var(--primary), transparent 42%),
+    linear-gradient(160deg, var(--card), var(--background));
+}

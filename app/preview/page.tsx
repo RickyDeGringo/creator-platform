@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AccessManager } from "@/components/dashboard/access-manager";
+import { DesignManager } from "@/components/dashboard/design-manager";
 import { GoalManager } from "@/components/dashboard/goal-manager";
 import { MemberManager } from "@/components/dashboard/member-manager";
 import { PostManager } from "@/components/dashboard/post-manager";
 import { CreatorView } from "@/components/creator/creator-view";
+import { PageTheme } from "@/components/creator/page-theme";
 import { RedeemForm } from "@/components/redeem-form";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { AccessCode, FeedPost, Goal, ManagedPost, PageMember, WishlistCategory } from "@/lib/types";
@@ -24,13 +26,19 @@ const categories: WishlistCategory[] = [
     name: "Studio",
     created_at: "2026-08-02T00:00:00.000Z",
   },
+  {
+    id: "cat-shows",
+    page_id: "page-1",
+    name: "Shows",
+    created_at: "2026-08-03T00:00:00.000Z",
+  },
 ];
 
 const goals: Goal[] = [
   {
     id: "goal-1",
     page_id: "page-1",
-    category_id: "cat-gear",
+    category_ids: ["cat-gear", "cat-studio"],
     title: "New saddle",
     description: "The current one is done after this season.",
     link: "https://example.com/saddle",
@@ -45,7 +53,7 @@ const goals: Goal[] = [
   {
     id: "goal-2",
     page_id: "page-1",
-    category_id: null,
+    category_ids: ["cat-shows"],
     title: "New bell",
     description: null,
     link: "https://example.com/bell",
@@ -170,7 +178,8 @@ export default function PreviewPage() {
 
   return (
     <div>
-      <CreatorView
+      <PageTheme palette="ember" font="editorial">
+        <CreatorView
         slug="nova-live"
         pageId="page-1"
         displayName="Nova Live"
@@ -187,7 +196,18 @@ export default function PreviewPage() {
         canManage={false}
         notice={null}
       />
+      </PageTheme>
       <div className="mx-auto w-full max-w-3xl space-y-12 px-4 pb-20">
+        <section className="space-y-4">
+          <h2 className="font-heading text-3xl">Design</h2>
+          <DesignManager
+            slug="nova-live"
+            displayName="Nova Live"
+            bio="Nightly TikTok lives, backstage notes, and the gear fund."
+            palette="ember"
+            font="editorial"
+          />
+        </section>
         <section className="space-y-4">
           <h2 className="font-heading text-3xl">Redeem</h2>
           <RedeemForm />

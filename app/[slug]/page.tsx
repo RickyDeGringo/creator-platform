@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CreatorView } from "@/components/creator/creator-view";
+import { PageTheme } from "@/components/creator/page-theme";
 import { SetupNotice } from "@/components/setup-notice";
 import { loadCreatorPage } from "@/lib/creator-page";
+import { pageFont, pagePalette } from "@/lib/page-theme";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ error?: string }> };
 
@@ -40,7 +42,8 @@ export default async function CreatorPage({ params, searchParams }: Props) {
   const { page, covers, goals, categories, posts, followerCount, isFollowing, isMember, canManage, viewer } = result.data;
 
   return (
-    <CreatorView
+    <PageTheme palette={pagePalette(page.palette)} font={pageFont(page.font)}>
+      <CreatorView
       slug={page.slug}
       pageId={page.id}
       displayName={page.display_name}
@@ -62,5 +65,6 @@ export default async function CreatorPage({ params, searchParams }: Props) {
       canManage={canManage}
       notice={error ?? null}
     />
+    </PageTheme>
   );
 }

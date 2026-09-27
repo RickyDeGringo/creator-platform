@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { GoalList } from "@/components/creator/goal-list";
-import { buttonVariants } from "@/components/ui/button";
+import { tagPillClass } from "@/components/wishlist-tags";
 import { Input } from "@/components/ui/input";
 import { asNumber, progressPercent } from "@/lib/format";
 import type { Goal, WishlistCategory } from "@/lib/types";
@@ -59,15 +59,15 @@ export function WishlistBoard({
     return map;
   }, [categories]);
 
-  const hasUncategorized = goals.some((goal) => !goal.category_id || !names[goal.category_id]);
+  const hasUntagged = goals.some((goal) => !goal.category_ids.some((id) => names[id]));
   const showCategories = categories.length > 0;
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
     const matched = goals.filter((goal) => {
-      const category = goal.category_id ? names[goal.category_id] : undefined;
-      if (categoryId === "none" && category) return false;
-      if (categoryId !== "all" && categoryId !== "none" && goal.category_id !== categoryId) return false;
+      const tagged = goal.category_ids.some((id) => names[id]);
+      if (categoryId === "none" && tagged) return false;
+      if (categoryId !== "all" && categoryId !== "none" && !goal.category_ids.includes(categoryId)) return false;
       if (!needle) return true;
       return (
         goal.title.toLowerCase().includes(needle) || (goal.description ?? "").toLowerCase().includes(needle)
@@ -82,7 +82,7 @@ export function WishlistBoard({
 
   const empty =
     categoryId !== "all" && !query.trim()
-      ? "Nothing in this category yet."
+      ? "Nothing with this tag yet."
       : "Nothing matches that search.";
 
   return (
@@ -111,12 +111,12 @@ export function WishlistBoard({
       </div>
 
       {showCategories ? (
-        <div role="group" aria-label="Categories" className="flex flex-wrap gap-2">
+        <div role="group" aria-label="Tags" className="flex flex-wrap gap-2">
           <button
             type="button"
             aria-pressed={categoryId === "all"}
             onClick={() => setCategoryId("all")}
-            className={buttonVariants({ variant: categoryId === "all" ? "default" : "outline", size: "sm" })}
+            className={tagPillClass(categoryId === "all")}
           >
             All
           </button>
@@ -126,22 +126,19 @@ export function WishlistBoard({
               type="button"
               aria-pressed={categoryId === category.id}
               onClick={() => setCategoryId(category.id)}
-              className={buttonVariants({
-                variant: categoryId === category.id ? "default" : "outline",
-                size: "sm",
-              })}
+              className={tagPillClass(categoryId === category.id)}
             >
               {category.name}
             </button>
           ))}
-          {hasUncategorized ? (
+          {hasUntagged ? (
             <button
               type="button"
               aria-pressed={categoryId === "none"}
               onClick={() => setCategoryId("none")}
-              className={buttonVariants({ variant: categoryId === "none" ? "default" : "outline", size: "sm" })}
+              className={tagPillClass(categoryId === "none")}
             >
-              Uncategorized
+              Untagged
             </button>
           ) : null}
         </div>
@@ -156,7 +153,7 @@ export function WishlistBoard({
       {visible.length === 0 ? (
         <p className="text-sm text-muted-foreground">{empty}</p>
       ) : (
-        <GoalList goals={visible} paypalLink={paypalLink} categoryNames={categoryId === "all" ? names : undefined} />
+        <GoalList goals={visible} paypalLink={paypalLink} categoryNames={names} />
       )}
     </div>
   );

@@ -9,36 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { WishlistCategories } from "@/components/dashboard/wishlist-categories";
+import { WishlistTagField } from "@/components/wishlist-tags";
 import { asNumber, formatMoney } from "@/lib/format";
 import type { Goal, WishlistCategory } from "@/lib/types";
 
-function CategoryField({
-  id,
-  categories,
-  defaultValue,
-}: {
-  id: string;
-  categories: WishlistCategory[];
-  defaultValue?: string | null;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>Category</Label>
-      <select
-        id={id}
-        name="category_id"
-        defaultValue={defaultValue ?? ""}
-        className="h-10 w-full rounded-lg border border-input bg-card px-2.5 text-sm text-foreground"
-      >
-        <option value="">No category</option>
-        {categories.map((category) => (
-          <option key={category.id} value={category.id}>
-            {category.name}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
+function goalTagNames(goal: Goal, categories: WishlistCategory[]) {
+  const names = new Map(categories.map((category) => [category.id, category.name]));
+  return goal.category_ids.flatMap((id) => {
+    const name = names.get(id);
+    return name ? [name] : [];
+  });
 }
 
 function GoalEditor({
@@ -55,16 +35,24 @@ function GoalEditor({
   const [preparing, setPreparing] = useState(false);
   const photosRef = useRef<PhotoFieldHandle>(null);
 
+  const tags = goalTagNames(goal, categories);
+
   return (
     <article className="space-y-3 rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
       <div>
         <h3 className="font-medium">{goal.title}</h3>
         <p className="text-sm text-muted-foreground">
           {formatMoney(goal.current_amount_raised)} of {formatMoney(goal.target_amount)}
-          {goal.category_id
-            ? ` · ${categories.find((category) => category.id === goal.category_id)?.name ?? "Uncategorized"}`
-            : ""}
         </p>
+        {tags.length > 0 ? (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {tags.map((name) => (
+              <span key={name} className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground/75">
+                {name}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
       <form
         action={(formData) => {
@@ -97,7 +85,7 @@ function GoalEditor({
           onPreparing={setPreparing}
           fieldRef={photosRef}
         />
-        <CategoryField id={`category-${goal.id}`} categories={categories} defaultValue={goal.category_id} />
+        <WishlistTagField categories={categories} selectedIds={goal.category_ids} />
         <div className="space-y-2">
           <Label htmlFor={`link-${goal.id}`}>Shop or support link</Label>
           <Input
@@ -179,7 +167,7 @@ export function GoalManager({
           <Label htmlFor="title">Goal title</Label>
           <Input id="title" name="title" required maxLength={120} className="h-10" />
         </div>
-        <CategoryField id="goal-category" categories={categories} />
+        <WishlistTagField categories={categories} revision={state} />
         <div className="space-y-2">
           <Label htmlFor="description">Description</Label>
           <Textarea id="description" name="description" className="min-h-20" />
@@ -221,7 +209,7 @@ export function GoalManager({
       <div className="grid gap-3">
         {goals.map((goal) => (
           <GoalEditor
-            key={`${goal.id}-${goal.current_amount_raised}-${goal.link ?? ""}-${goal.image_url ?? ""}-${goal.category_id ?? ""}`}
+            key={`${goal.id}-${goal.current_amount_raised}-${goal.link ?? ""}-${goal.image_url ?? ""}-${goal.category_ids.join(",")}`}
             slug={slug}
             goal={goal}
             categories={categories}

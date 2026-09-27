@@ -41,7 +41,7 @@ export const loadCreatorPage = cache(async (slug: string): Promise<LoadCreatorRe
   const supabase = await createClient();
   const { data: pageRow, error: pageError } = await supabase
     .from("creator_pages")
-    .select("id, slug, display_name, bio, cover_image, paypal_link, created_at")
+    .select("id, slug, display_name, bio, cover_image, paypal_link, palette, font, created_at")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -56,7 +56,7 @@ export const loadCreatorPage = cache(async (slug: string): Promise<LoadCreatorRe
     supabase
       .from("goals")
       .select(
-        "id, page_id, category_id, title, description, link, image_url, image_width, image_height, target_amount, current_amount_raised, created_at",
+        "id, page_id, title, description, link, image_url, image_width, image_height, target_amount, current_amount_raised, created_at, goal_categories(category_id)",
       )
       .eq("page_id", page.id)
       .order("created_at", { ascending: false }),

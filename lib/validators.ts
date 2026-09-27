@@ -59,9 +59,11 @@ export function normalizeCategoryName(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
 
+export const MAX_GOAL_TAGS = 8;
+
 export function categoryNameError(value: string) {
   const name = normalizeCategoryName(value);
-  if (name.length < 1 || name.length > 40) return "Category names are 1–40 characters.";
+  if (name.length < 1 || name.length > 40) return "Tag names are 1–40 characters.";
   return null;
 }
 
@@ -110,9 +112,19 @@ export function friendlyDbError(message: string) {
   if (message.includes("comment_length")) return "Comments can be up to 1000 characters.";
   if (message.includes("too_many_goals")) return "Attach up to 6 wishlist items.";
   if (message.includes("goal_page_mismatch")) return "Choose goals from this page.";
-  if (message.includes("too_many_categories")) return "A page can have 24 wishlist categories.";
-  if (message.includes("category_page_mismatch")) return "Choose a category from this page.";
+  if (message.includes("too_many_categories")) return "A page can have 24 wishlist tags.";
+  if (message.includes("too_many_goal_tags")) return "A goal can have 8 tags.";
+  if (message.includes("category_page_mismatch")) return "Choose tags from this page.";
   if (message.includes("wishlist_categories_page_name")) return "That category is already on this page.";
+  if (message.includes("creator_pages_palette_known") || message.includes("creator_pages_font_known")) {
+    return "Choose one of the listed palettes and fonts.";
+  }
+  if (
+    (message.includes("schema cache") || message.includes("does not exist")) &&
+    (message.includes("palette") || message.includes("font"))
+  ) {
+    return "Page design is not available until the latest database migration is applied.";
+  }
   if (message.includes("image_page_mismatch") || message.includes("invalid_image_path")) {
     return "That photo could not be saved.";
   }

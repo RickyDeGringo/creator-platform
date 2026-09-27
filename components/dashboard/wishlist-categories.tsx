@@ -33,7 +33,7 @@ function CategoryRow({ slug, category }: { slug: string; category: WishlistCateg
         <form action={renameAction} className="flex items-center gap-2">
           <input type="hidden" name="categoryId" value={category.id} />
           <Label htmlFor={`category-${category.id}`} className="sr-only">
-            Category name
+            Tag name
           </Label>
           <Input
             id={`category-${category.id}`}
@@ -66,7 +66,7 @@ function CategoryRow({ slug, category }: { slug: string; category: WishlistCateg
               className="text-destructive"
               disabled={deletePending}
               onClick={(event) => {
-                if (!window.confirm(`Delete “${category.name}”? Items in it stay on the wishlist.`)) {
+                if (!window.confirm(`Delete “${category.name}”? Items keep their other tags.`)) {
                   event.preventDefault();
                 }
               }}
@@ -94,19 +94,19 @@ export function WishlistCategories({ slug, categories }: { slug: string; categor
     <section className="rounded-2xl bg-card ring-1 ring-foreground/10">
       <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="font-medium">Categories</h3>
-          <p className="text-sm text-muted-foreground">Visitors filter the wishlist with these.</p>
+          <h3 className="font-medium">Tags</h3>
+          <p className="text-sm text-muted-foreground">Visitors filter the wishlist with these. A goal can wear several.</p>
         </div>
         <form ref={formRef} action={action} className="flex items-center gap-2 sm:w-80">
           <Label htmlFor="category-name" className="sr-only">
-            New category
+            New tag
           </Label>
           <Input
             id="category-name"
             name="name"
             required
             maxLength={40}
-            placeholder="New category"
+            placeholder="New tag"
             className="h-8"
           />
           <Button type="submit" size="sm" disabled={pending}>
@@ -120,7 +120,7 @@ export function WishlistCategories({ slug, categories }: { slug: string; categor
         </div>
       ) : null}
       {categories.length === 0 ? (
-        <p className="border-t border-foreground/10 px-3 py-3 text-sm text-muted-foreground">No categories yet.</p>
+        <p className="border-t border-foreground/10 px-3 py-3 text-sm text-muted-foreground">No tags yet.</p>
       ) : (
         <ul className="divide-y divide-foreground/10 border-t border-foreground/10">
           {categories.map((category) => (
