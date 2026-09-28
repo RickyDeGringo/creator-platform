@@ -26,27 +26,27 @@ export function CoverBanner({ images }: { images: PostImage[] }) {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/10 to-transparent" />
       {images.length > 1 ? (
         <>
-          <div className="absolute inset-y-0 left-0 flex items-center px-2">
+          <div className="absolute inset-y-0 left-0 flex items-center px-3">
             <button
               type="button"
               aria-label="Previous cover"
-              className="inline-flex min-h-11 items-center rounded-full bg-background/80 px-4 text-sm"
+              className="inline-flex size-11 items-center justify-center rounded-full bg-background/80 text-foreground shadow-sm backdrop-blur-sm"
               onClick={() => setIndex((value) => (value - 1 + images.length) % images.length)}
             >
-              Previous
+              <Chevron direction="left" />
             </button>
           </div>
-          <div className="absolute inset-y-0 right-0 flex items-center px-2">
+          <div className="absolute inset-y-0 right-0 flex items-center px-3">
             <button
               type="button"
               aria-label="Next cover"
-              className="inline-flex min-h-11 items-center rounded-full bg-background/80 px-4 text-sm"
+              className="inline-flex size-11 items-center justify-center rounded-full bg-background/80 text-foreground shadow-sm backdrop-blur-sm"
               onClick={() => setIndex((value) => (value + 1) % images.length)}
             >
-              Next
+              <Chevron direction="right" />
             </button>
           </div>
-          <div className="absolute bottom-14 left-1/2 flex -translate-x-1/2">
+          <div className="absolute bottom-20 left-1/2 flex -translate-x-1/2">
             {images.map((image, dot) => (
               <button
                 key={image.url}
@@ -65,5 +65,22 @@ export function CoverBanner({ images }: { images: PostImage[] }) {
         </>
       ) : null}
     </div>
+  );
+}
+
+function Chevron({ direction }: { direction: "left" | "right" }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="size-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {direction === "left" ? <path d="M15 18 9 12l6-6" /> : <path d="M9 18l6-6-6-6" />}
+    </svg>
   );
 }

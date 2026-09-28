@@ -82,7 +82,7 @@ export default async function DashboardSlugPage({ params }: Props) {
     supabase
       .from("posts")
       .select(
-        "id, page_id, content, image_url, is_paywalled, created_at, post_images(url, width, height, sort_order), post_goals(sort_order, goals(id, title)), comments(count)",
+        "id, page_id, title, content, image_url, is_paywalled, is_draft, created_at, post_images(url, width, height, sort_order), post_goals(sort_order, goals(id, title)), comments(count)",
       )
       .eq("page_id", page.id)
       .order("created_at", { ascending: false }),

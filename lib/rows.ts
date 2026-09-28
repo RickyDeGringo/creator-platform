@@ -161,6 +161,7 @@ export function toFeedPost(value: unknown): FeedPost {
   return {
     id: String(row.id),
     page_id: String(row.page_id),
+    title: row.title == null ? null : String(row.title),
     content: row.content == null ? null : String(row.content),
     image_url: imageUrl,
     images: imagesFromRow(row),
@@ -170,8 +171,16 @@ export function toFeedPost(value: unknown): FeedPost {
     viewerReactions: [],
     is_paywalled: Boolean(row.is_paywalled),
     is_locked: Boolean(row.is_locked),
+    image_count: feedImageCount(row.image_count),
     created_at: String(row.created_at),
   };
+}
+
+function feedImageCount(value: unknown) {
+  if (value == null || value === "") return null;
+  const count = Number(value);
+  if (!Number.isFinite(count)) return null;
+  return Math.max(0, Math.floor(count));
 }
 
 function embeddedCount(value: unknown) {
@@ -190,6 +199,7 @@ export function toManagedPost(value: unknown): ManagedPost {
   return {
     id: String(row.id),
     page_id: String(row.page_id),
+    title: row.title == null ? null : String(row.title),
     content: row.content == null ? null : String(row.content),
     image_url: row.image_url == null ? null : String(row.image_url),
     images: imagesFromRow(row),
@@ -197,6 +207,7 @@ export function toManagedPost(value: unknown): ManagedPost {
     comment_count: embeddedCount(row.comments),
     reactions: [],
     is_paywalled: Boolean(row.is_paywalled),
+    is_draft: Boolean(row.is_draft),
     created_at: String(row.created_at),
   };
 }

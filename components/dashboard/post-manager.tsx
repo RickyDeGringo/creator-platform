@@ -10,12 +10,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SubscribersToggle } from "@/components/dashboard/subscribers-toggle";
 import { PublishedAtField } from "@/components/published-at-field";
 import { formatTimestamp } from "@/lib/format";
 import { reactionGlyph, reactionLabel } from "@/lib/reactions";
+import { cn } from "@/lib/utils";
 import type { Goal, ManagedPost, WishlistCategory } from "@/lib/types";
 
+type WishlistGoal = Pick<Goal, "id" | "title" | "category_ids" | "image_url">;
+
 function postTitle(post: ManagedPost) {
+  const titled = post.title?.trim();
+  if (titled) return titled;
   const line = post.content
     ?.split("\n")
     .map((part) => part.trim())
@@ -28,10 +34,12 @@ function postTitle(post: ManagedPost) {
 
 function PostDialog({
   title,
+  wide = false,
   onClose,
   children,
 }: {
   title: string;
+  wide?: boolean;
   onClose: () => void;
   children: ReactNode;
 }) {
@@ -50,7 +58,10 @@ function PostDialog({
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
-      className="m-auto w-[min(32rem,calc(100%-2rem))] max-h-[calc(100%-2rem)] overflow-y-auto rounded-2xl border-0 bg-card p-5 text-foreground shadow-2xl backdrop:bg-black/60"
+      className={cn(
+        "m-auto max-h-[calc(100%-2rem)] overflow-y-auto rounded-2xl border-0 bg-card p-5 text-foreground shadow-2xl backdrop:bg-black/60",
+        wide ? "w-[min(42rem,calc(100%-2rem))]" : "w-[min(32rem,calc(100%-2rem))]",
+      )}
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <h3 className="font-heading text-2xl">{title}</h3>
@@ -72,7 +83,7 @@ function EditPostForm({
 }: {
   slug: string;
   post: ManagedPost;
-  goals: Pick<Goal, "id" | "title" | "category_ids">[];
+  goals: WishlistGoal[];
   categories: Pick<WishlistCategory, "id" | "name">[];
   onDone: () => void;
 }) {
@@ -102,7 +113,11 @@ function EditPostForm({
         <input type="hidden" name="postId" value={post.id} />
         <input type="hidden" name="update_paywall" value="1" />
         <div className="space-y-2">
-          <Label htmlFor={`content-${post.id}`}>Post</Label>
+          <Label htmlFor={`title-${post.id}`}>Title</Label>
+          <Input id={`title-${post.id}`} name="title" maxLength={120} defaultValue={post.title ?? ""} className="h-10" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`content-${post.id}`}>Body</Label>
           <Textarea id={`content-${post.id}`} name="content" defaultValue={post.content ?? ""} className="min-h-28" />
         </div>
         <PublishedAtField id={`published-${post.id}`} iso={post.created_at} />
@@ -111,14 +126,22 @@ function EditPostForm({
           categories={categories}
           selectedIds={post.goals.map((goal) => goal.id)}
         />
-        <label className="flex min-h-11 items-center gap-3 text-base sm:text-sm">
-          <input type="checkbox" name="is_paywalled" defaultChecked={post.is_paywalled} className="size-5 shrink-0" />
-          Paywalled
-        </label>
+        <SubscribersToggle id={`subscribers-${post.id}`} defaultChecked={post.is_paywalled} />
         <FormMessage state={state} />
-        <Button type="submit" disabled={pending}>
-          {pending ? "Saving…" : "Save"}
-        </Button>
+        {post.is_draft ? (
+          <div className="grid grid-cols-2 gap-3">
+            <Button type="submit" name="intent" value="draft" variant="secondary" className="h-10 w-full" disabled={pending}>
+              {pending ? "Saving…" : "Save as draft"}
+            </Button>
+            <Button type="submit" name="intent" value="publish" className="h-10 w-full" disabled={pending}>
+              {pending ? "Publishing…" : "Publish"}
+            </Button>
+          </div>
+        ) : (
+          <Button type="submit" disabled={pending}>
+            {pending ? "Saving…" : "Save"}
+          </Button>
+        )}
       </form>
       <form action={deleteAction}>
         <input type="hidden" name="postId" value={post.id} />
@@ -146,7 +169,7 @@ function PostRow({
 }: {
   slug: string;
   post: ManagedPost;
-  goals: Pick<Goal, "id" | "title" | "category_ids">[];
+  goals: WishlistGoal[];
   categories: Pick<WishlistCategory, "id" | "name">[];
 }) {
   const [open, setOpen] = useState(false);
@@ -185,7 +208,13 @@ function PostRow({
             </span>
           ))}
           <span className="text-sm text-muted-foreground tabular-nums">{comments}</span>
-          {post.is_paywalled ? <Badge variant="secondary">Paywalled</Badge> : <Badge variant="outline">Public</Badge>}
+          {post.is_draft ? (
+            <Badge variant="outline">Draft</Badge>
+          ) : post.is_paywalled ? (
+            <Badge variant="secondary">Subscribers</Badge>
+          ) : (
+            <Badge variant="outline">Public</Badge>
+          )}
         </span>
       </button>
       {open ? (
@@ -203,6 +232,98 @@ function PostRow({
   );
 }
 
+function NewPostForm({
+  slug,
+  goals,
+  categories,
+  onDone,
+}: {
+  slug: string;
+  goals: WishlistGoal[];
+  categories: Pick<WishlistCategory, "id" | "name">[];
+  onDone: () => void;
+}) {
+  const [state, action, pending] = useActionState(createPost.bind(null, slug), null);
+  const [preparing, setPreparing] = useState(false);
+  const [intent, setIntent] = useState<"draft" | "publish" | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const photosRef = useRef<PhotoFieldHandle>(null);
+
+  useEffect(() => {
+    if (!state?.success) return;
+    formRef.current?.reset();
+    onDone();
+  }, [onDone, state]);
+
+  return (
+    <form
+      ref={formRef}
+      action={(formData) => {
+        for (const file of photosRef.current?.files ?? []) formData.append("photos", file);
+        action(formData);
+      }}
+      className="space-y-4"
+    >
+      <PhotoField
+        id="photos"
+        label="Photos"
+        hint="Drop photos here. Very wide or very tall shots are trimmed evenly so they fit the page."
+        revision={state}
+        onPreparing={setPreparing}
+        fieldRef={photosRef}
+      />
+
+      <div className="space-y-2">
+        <Label htmlFor="image_url">Image URL</Label>
+        <Input id="image_url" name="image_url" type="url" placeholder="https://" className="h-10" />
+        <p className="text-sm text-muted-foreground">Optional. Uploaded photos load faster than a pasted link.</p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="title">Title</Label>
+        <Input id="title" name="title" maxLength={120} placeholder="Give the post a title" className="h-10" />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="content">Body</Label>
+        <Textarea id="content" name="content" placeholder="What happened on the ride?" className="min-h-28" />
+      </div>
+
+      <WishlistItemPicker goals={goals} categories={categories} revision={state} />
+
+      <div className="grid grid-cols-2 items-end gap-3 *:min-w-0">
+        <PublishedAtField id="published-at" revision={state} />
+        <SubscribersToggle id="subscribers-only" />
+      </div>
+
+      <FormMessage state={state} />
+      <div className="grid grid-cols-2 gap-3 *:min-w-0">
+        <Button
+          type="submit"
+          name="intent"
+          value="draft"
+          variant="secondary"
+          className="h-10 w-full"
+          disabled={pending || preparing}
+          onClick={() => setIntent("draft")}
+        >
+          {pending && intent === "draft" ? "Saving…" : "Save as draft"}
+        </Button>
+        <Button
+          type="submit"
+          name="intent"
+          value="publish"
+          className="h-10 w-full"
+          disabled={pending || preparing}
+          onClick={() => setIntent("publish")}
+        >
+          {pending && intent === "publish" ? "Publishing…" : "Publish"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export function PostManager({
   slug,
   posts,
@@ -211,61 +332,21 @@ export function PostManager({
 }: {
   slug: string;
   posts: ManagedPost[];
-  goals: Pick<Goal, "id" | "title" | "category_ids">[];
+  goals: WishlistGoal[];
   categories: Pick<WishlistCategory, "id" | "name">[];
 }) {
-  const [state, action, pending] = useActionState(createPost.bind(null, slug), null);
-  const [preparing, setPreparing] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
-  const photosRef = useRef<PhotoFieldHandle>(null);
-
-  useEffect(() => {
-    if (state?.success) formRef.current?.reset();
-  }, [state]);
+  const [composer, setComposer] = useState(false);
 
   return (
     <div className="space-y-6">
-      <form
-        ref={formRef}
-        action={(formData) => {
-          for (const file of photosRef.current?.files ?? []) formData.append("photos", file);
-          action(formData);
-        }}
-        className="space-y-4 rounded-2xl bg-card p-4 ring-1 ring-foreground/10"
-      >
-        <div className="space-y-2">
-          <Label htmlFor="content">Post</Label>
-          <Textarea id="content" name="content" placeholder="What happened on the ride?" className="min-h-28" />
-        </div>
-
-        <PhotoField
-          id="photos"
-          label="Photos"
-          hint="Drop photos here. Very wide or very tall shots are trimmed evenly so they fit the page."
-          revision={state}
-          onPreparing={setPreparing}
-          fieldRef={photosRef}
-        />
-
-        <div className="space-y-2">
-          <Label htmlFor="image_url">Image URL</Label>
-          <Input id="image_url" name="image_url" type="url" placeholder="https://" className="h-10" />
-          <p className="text-sm text-muted-foreground">Optional. Uploaded photos load faster than a pasted link.</p>
-        </div>
-
-        <PublishedAtField id="published-at" revision={state} />
-
-        <WishlistItemPicker goals={goals} categories={categories} revision={state} />
-
-        <label className="flex min-h-11 items-center gap-3 text-base sm:text-sm">
-          <input type="checkbox" name="is_paywalled" className="size-5 shrink-0" />
-          Paywalled
-        </label>
-        <FormMessage state={state} />
-        <Button type="submit" disabled={pending || preparing}>
-          {pending ? "Publishing…" : "Publish"}
-        </Button>
-      </form>
+      <Button type="button" onClick={() => setComposer(true)}>
+        New post
+      </Button>
+      {composer ? (
+        <PostDialog title="New post" wide onClose={() => setComposer(false)}>
+          <NewPostForm slug={slug} goals={goals} categories={categories} onDone={() => setComposer(false)} />
+        </PostDialog>
+      ) : null}
 
       {posts.length === 0 ? (
         <p className="rounded-2xl bg-card px-3 py-3 text-sm text-muted-foreground ring-1 ring-foreground/10">
@@ -275,7 +356,7 @@ export function PostManager({
         <ul className="divide-y divide-foreground/10 overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/10">
           {posts.map((post) => (
             <PostRow
-              key={`${post.id}-${post.created_at}-${post.is_paywalled}-${post.content ?? ""}-${post.comment_count}-${post.reactions.map((reaction) => `${reaction.emoji}${reaction.count}`).join(".")}-${post.goals.map((goal) => goal.id).join(",")}`}
+              key={`${post.id}-${post.created_at}-${post.is_paywalled}-${post.is_draft}-${post.title ?? ""}-${post.content ?? ""}-${post.comment_count}-${post.reactions.map((reaction) => `${reaction.emoji}${reaction.count}`).join(".")}-${post.goals.map((goal) => goal.id).join(",")}`}
               slug={slug}
               post={post}
               goals={goals}

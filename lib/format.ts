@@ -55,12 +55,51 @@ export function httpsUrl(value: string | null | undefined) {
   }
 }
 
-export function supportLink(goalLink: string | null | undefined, fallback: string | null | undefined) {
-  const own = httpsUrl(goalLink);
-  if (own) return { href: own, label: "Get this" as const };
-  const shared = httpsUrl(fallback);
-  if (shared) return { href: shared, label: "Donate" as const };
-  return null;
+export function paypalMeHandle(link: string | null | undefined) {
+  const href = httpsUrl(link);
+  if (!href) return null;
+  let url: URL;
+  try {
+    url = new URL(href);
+  } catch {
+    return null;
+  }
+  const host = url.hostname.toLowerCase().replace(/^www\./, "");
+  const parts = url.pathname.split("/").filter(Boolean);
+  const raw = host === "paypal.me" ? parts[0] : host === "paypal.com" ? paypalMeSegment(parts) : undefined;
+  if (!raw) return null;
+  let handle: string;
+  try {
+    handle = decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{1,62}$/.test(handle)) return null;
+  return handle;
+}
+
+function paypalMeSegment(parts: string[]) {
+  const index = parts.findIndex((part) => part.toLowerCase() === "paypalme");
+  if (index < 0) return undefined;
+  return parts[index + 1];
+}
+
+export function parseUsd(value: string) {
+  const cleaned = value.trim().replace(/^\$/, "").replace(/,/g, "");
+  if (!/^\d+(\.\d{1,2})?$/.test(cleaned)) return null;
+  const amount = Number(cleaned);
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 999_999.99) return null;
+  return Math.round(amount * 100) / 100;
+}
+
+export function paypalContributeUrl(link: string | null | undefined, amount: number, itemTitle: string) {
+  const handle = paypalMeHandle(link);
+  if (!handle || !Number.isFinite(amount) || amount <= 0 || amount > 999_999.99) return null;
+  const money = amount.toFixed(2);
+  const url = new URL(`https://www.paypal.com/paypalme/${encodeURIComponent(handle)}/${money}USD`);
+  const title = itemTitle.trim().replace(/\s+/g, " ").slice(0, 127);
+  if (title) url.searchParams.set("item_name", title);
+  return url.toString();
 }
 
 export function progressPercent(current: number | string, target: number | string) {

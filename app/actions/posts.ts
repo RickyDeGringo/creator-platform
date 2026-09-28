@@ -54,14 +54,19 @@ export async function createPost(slug: string, _prev: ActionState, formData: For
   const access = await getStaffPage(slug);
   if (!access.ok) return { error: access.error };
 
+  const title = String(formData.get("title") ?? "").trim();
   const content = String(formData.get("content") ?? "").trim();
   const image = optionalHttps(formData.get("image_url"));
   if ("error" in image) return { error: image.error };
   const imageUrl = image.url;
   const isPaywalled = formData.get("is_paywalled") === "on";
+  const intent = String(formData.get("intent") ?? "");
+  const isDraft = intent === "draft";
   const photos = photoFiles(formData);
   const goalIds = goalIdsFromForm(formData);
 
+  if (intent !== "draft" && intent !== "publish") return { error: "Choose save as draft or publish." };
+  if (title.length > 120) return { error: "Titles are limited to 120 characters." };
   if (content.length > 5000) return { error: "Posts are limited to 5000 characters." };
   if (photos.length + (imageUrl ? 1 : 0) > PHOTO_MAX_COUNT) {
     return { error: `A post can show ${PHOTO_MAX_COUNT} images.` };
@@ -70,7 +75,9 @@ export async function createPost(slug: string, _prev: ActionState, formData: For
     return { error: "That photo is still too large after resizing." };
   }
   if (goalIds.length > MAX_GOALS) return { error: "Attach up to 6 wishlist items." };
-  if (!content && !imageUrl && photos.length === 0) return { error: "Add text, a photo, or an image URL." };
+  if (!title && !content && !imageUrl && photos.length === 0) {
+    return { error: "Add a title, some text, or a photo." };
+  }
   const published = publishedInstant(formData.get("published_at"), formData.get("timezone_offset"));
   if ("error" in published) return { error: published.error };
 
@@ -125,9 +132,11 @@ export async function createPost(slug: string, _prev: ActionState, formData: For
     .from("posts")
     .insert({
       page_id: access.page.id,
+      title: title || null,
       content: content || null,
       image_url: cover,
       is_paywalled: isPaywalled,
+      is_draft: isDraft,
       created_at: published.at,
     })
     .select("id")
@@ -192,7 +201,8 @@ export async function createPost(slug: string, _prev: ActionState, formData: For
   }
 
   refresh(slug);
-  return { success: isPaywalled ? "Paywalled post published." : "Post published." };
+  if (isDraft) return { success: "Draft saved." };
+  return { success: isPaywalled ? "Subscribers-only post published." : "Post published." };
 }
 
 function publishedInstant(value: FormDataEntryValue | null, offsetValue: FormDataEntryValue | null) {
@@ -236,27 +246,40 @@ export async function updatePost(slug: string, _prev: ActionState, formData: For
 
   const content = String(formData.get("content") ?? "").trim();
   if (content.length > 5000) return { error: "Posts are limited to 5000 characters." };
+  const nextTitle = formData.has("title") ? String(formData.get("title") ?? "").trim() : undefined;
+  if (nextTitle !== undefined && nextTitle.length > 120) return { error: "Titles are limited to 120 characters." };
   const published = publishedInstant(formData.get("published_at"), formData.get("timezone_offset"));
   if ("error" in published) return { error: published.error };
 
   const supabase = await createClient();
   const { data: existing, error: loadError } = await supabase
     .from("posts")
-    .select("id, image_url")
+    .select("id, image_url, title, is_draft")
     .eq("id", postId)
     .eq("page_id", access.page.id)
     .maybeSingle();
   if (loadError) return { error: friendlyDbError(loadError.message) };
   if (!existing) return { error: "That post is gone." };
-  if (!content && !existing.image_url) return { error: "Add text, or keep a photo on the post." };
+  const title = nextTitle === undefined ? (existing.title == null ? null : String(existing.title)) : nextTitle || null;
+  if (!title && !content && !existing.image_url) return { error: "Add a title, some text, or keep a photo on the post." };
 
-  const changes: { content: string | null; created_at: string; is_paywalled?: boolean } = {
+  const intent = String(formData.get("intent") ?? "");
+  const changes: {
+    content: string | null;
+    title: string | null;
+    created_at: string;
+    is_paywalled?: boolean;
+    is_draft?: boolean;
+  } = {
     content: content || null,
+    title,
     created_at: published.at,
   };
   if (formData.get("update_paywall") === "1") {
     changes.is_paywalled = formData.get("is_paywalled") === "on";
   }
+  if (intent === "draft") changes.is_draft = true;
+  if (intent === "publish") changes.is_draft = false;
 
   const { error } = await supabase
     .from("posts")
@@ -268,6 +291,8 @@ export async function updatePost(slug: string, _prev: ActionState, formData: For
   const goalError = await replacePostGoals(supabase, access.page.id, postId, goalIdsFromForm(formData));
   refresh(slug);
   if (goalError) return { error: goalError };
+  if (intent === "draft") return { success: "Draft saved." };
+  if (intent === "publish") return { success: "Post published." };
   return { success: "Post updated." };
 }
 

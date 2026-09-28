@@ -49,6 +49,7 @@
 }
 
 :root {
+  --creator-stick: 4rem;
   --background: oklch(0.16 0.012 65);
   --foreground: oklch(0.96 0.015 90);
   --card: oklch(0.21 0.014 65);
@@ -151,4 +152,48 @@
   background-image:
     radial-gradient(circle at top left, var(--primary), transparent 42%),
     linear-gradient(160deg, var(--card), var(--background));
+}
+
+.dual-range {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  appearance: none;
+  background: transparent;
+}
+
+.dual-range::-webkit-slider-runnable-track {
+  height: 2.75rem;
+  background: transparent;
+}
+
+.dual-range::-webkit-slider-thumb {
+  appearance: none;
+  pointer-events: auto;
+  height: 1.25rem;
+  width: 1.25rem;
+  margin-top: 0.75rem;
+  border: 2px solid var(--background);
+  border-radius: 9999px;
+  background: var(--primary);
+  cursor: grab;
+}
+
+.dual-range::-moz-range-track {
+  height: 100%;
+  background: transparent;
+  border: 0;
+}
+
+.dual-range::-moz-range-thumb {
+  pointer-events: auto;
+  height: 1.25rem;
+  width: 1.25rem;
+  border: 2px solid var(--background);
+  border-radius: 9999px;
+  background: var(--primary);
+  cursor: grab;
 }

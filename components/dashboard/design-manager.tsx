@@ -106,19 +106,21 @@ export function DesignManager({
       <aside aria-label="Page preview" className="max-sm:order-first sm:sticky sm:top-20">
         <p className="mb-2 text-sm font-medium">Preview</p>
         <PageTheme palette={paletteId} font={fontId} preview className="overflow-hidden rounded-2xl ring-1 ring-foreground/15">
-          <div className="cover-fallback h-16" />
+          <div className="relative">
+            <div className="cover-fallback h-16" />
+            <span className="absolute right-2 bottom-2 rounded-lg bg-primary px-2 py-1 text-[10px] font-medium text-primary-foreground">
+              Follow
+            </span>
+          </div>
           <div className="px-3 pb-3">
-            <p className="-mt-3 text-[10px] tracking-wide text-muted-foreground uppercase">@{slug}</p>
+            <p className="mt-2 text-[10px] tracking-wide text-muted-foreground uppercase">@{slug}</p>
             <h2 className="font-heading text-3xl leading-none break-words">{displayName}</h2>
             <p className="mt-2 line-clamp-3 text-[11px] leading-4">
               {bio?.trim() || "A short bio sits under the name."}
             </p>
-            <div className="mt-3 flex items-center gap-2">
-              <span className="rounded-lg bg-primary px-2 py-1 text-[10px] font-medium text-primary-foreground">Follow</span>
-              <span className="text-[10px] text-muted-foreground">128 followers</span>
-            </div>
+            <p className="mt-2 text-[10px] text-muted-foreground">128 followers</p>
             <div className="mt-3 rounded-xl bg-card px-2.5 py-2 ring-1 ring-foreground/10">
-              <p className="font-heading text-lg leading-none">Wishlist</p>
+              <p className="font-heading text-lg leading-none">Posts</p>
               <p className="mt-1 text-[11px] leading-4">New saddle</p>
               <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
                 <div className="h-full w-1/3 rounded-full bg-primary" />

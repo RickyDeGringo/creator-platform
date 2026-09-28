@@ -112,6 +112,7 @@ export type PostGoal = {
 export type FeedPost = {
   id: string;
   page_id: string;
+  title: string | null;
   content: string | null;
   image_url: string | null;
   images: PostImage[];
@@ -121,12 +122,14 @@ export type FeedPost = {
   viewerReactions: ReactionEmoji[];
   is_paywalled: boolean;
   is_locked: boolean;
+  image_count: number | null;
   created_at: string;
 };
 
 export type ManagedPost = {
   id: string;
   page_id: string;
+  title: string | null;
   content: string | null;
   image_url: string | null;
   images: PostImage[];
@@ -134,6 +137,7 @@ export type ManagedPost = {
   comment_count: number;
   reactions: ReactionCount[];
   is_paywalled: boolean;
+  is_draft: boolean;
   created_at: string;
 };
 

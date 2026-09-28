@@ -1,9 +1,11 @@
 import { PostComments } from "@/components/creator/post-comments";
+import { PostJumpStrip } from "@/components/creator/post-jump-strip";
 import { PostReactions } from "@/components/creator/post-reactions";
 import { PostFrame } from "@/components/creator/post-edit";
 import { PostGallery } from "@/components/creator/post-gallery";
 import { buttonVariants } from "@/components/ui/button";
-import { formatMoney, httpsUrl, progressPercent, supportLink } from "@/lib/format";
+import { ContributeButton } from "@/components/creator/contribute-button";
+import { formatMoney, httpsUrl, progressPercent } from "@/lib/format";
 import type { CommentAccess, FeedPost, Goal, WishlistCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -33,9 +35,14 @@ export function PostFeed({
 
   return (
     <div className="grid gap-4">
+      <PostJumpStrip posts={posts} />
       {posts.map((post) =>
         post.is_locked ? (
-          <article key={post.id} className="relative overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/10">
+          <article
+            key={post.id}
+            id={`post-${post.id}`}
+            className="relative scroll-mt-[calc(var(--creator-stick)+5.75rem)] overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/10"
+          >
             <div className="pointer-events-none select-none space-y-3 p-5 blur-sm" aria-hidden="true">
               <div className="h-36 rounded-xl bg-foreground/25" />
               <div className="h-3 w-11/12 rounded-full bg-foreground/40" />
@@ -61,20 +68,24 @@ export function PostFeed({
             </div>
           </article>
         ) : (
-          <article key={post.id} className="rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
+          <article
+            key={post.id}
+            id={`post-${post.id}`}
+            className="scroll-mt-[calc(var(--creator-stick)+5.75rem)] rounded-2xl bg-card p-5 ring-1 ring-foreground/10"
+          >
             <PostFrame slug={slug} post={post} canManage={canManage} goals={goals} categories={categories}>
             {post.images.length > 0 ? (
               <div className="mb-4">
-                <PostGallery images={post.images} alt={photoAlt(post.content)} priority={post.id === eagerId} />
+                <PostGallery images={post.images} alt={photoAlt(post.content, post.title)} priority={post.id === eagerId} />
               </div>
             ) : null}
+            {post.title ? <h2 className="font-heading text-3xl leading-none tracking-tight">{post.title}</h2> : null}
             {post.content ? (
-              <p className="text-base leading-7 whitespace-pre-wrap break-words">{post.content}</p>
+              <p className={cn("text-base leading-7 whitespace-pre-wrap break-words", post.title && "mt-3")}>{post.content}</p>
             ) : null}
             {post.goals.length > 0 ? (
               <ul className="mt-4 grid gap-2">
                 {post.goals.map((goal) => {
-                  const support = supportLink(goal.link, paypalLink);
                   const pct = progressPercent(goal.current_amount_raised, goal.target_amount);
                   return (
                     <li
@@ -107,16 +118,7 @@ export function PostFeed({
                           <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
-                      {support ? (
-                        <a
-                          href={support.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={cn(buttonVariants({ size: "sm" }), "w-full sm:w-auto")}
-                        >
-                          {support.label}
-                        </a>
-                      ) : null}
+                      <ContributeButton paypalLink={paypalLink} itemTitle={goal.title} className="sm:shrink-0" />
                     </li>
                   );
                 })}
@@ -138,7 +140,9 @@ export function PostFeed({
   );
 }
 
-function photoAlt(content: string | null) {
+function photoAlt(content: string | null, title?: string | null) {
+  const titled = title?.trim();
+  if (titled) return titled.length > 120 ? `${titled.slice(0, 117)}…` : titled;
   const line = content
     ?.split("\n")
     .map((part) => part.trim())

@@ -6,6 +6,7 @@ import { WishlistItemPicker } from "@/components/dashboard/wishlist-item-picker"
 import { FormMessage } from "@/components/form-message";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PublishedAtField } from "@/components/published-at-field";
@@ -21,7 +22,7 @@ export function PostFrame({
   children,
 }: {
   slug: string;
-  post: Pick<FeedPost, "id" | "content" | "created_at" | "is_paywalled" | "goals">;
+  post: Pick<FeedPost, "id" | "title" | "content" | "created_at" | "is_paywalled" | "goals">;
   canManage: boolean;
   goals: Pick<Goal, "id" | "title" | "category_ids">[];
   categories: Pick<WishlistCategory, "id" | "name">[];
@@ -53,7 +54,11 @@ export function PostFrame({
         <form action={action} className="mb-4 space-y-3 rounded-xl bg-muted/50 p-3">
           <input type="hidden" name="postId" value={post.id} />
           <div className="space-y-2">
-            <Label htmlFor={`content-${post.id}`}>Post</Label>
+            <Label htmlFor={`title-${post.id}`}>Title</Label>
+            <Input id={`title-${post.id}`} name="title" maxLength={120} defaultValue={post.title ?? ""} className="h-10" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`content-${post.id}`}>Body</Label>
             <Textarea id={`content-${post.id}`} name="content" defaultValue={post.content ?? ""} className="min-h-28" />
           </div>
           <PublishedAtField id={`published-${post.id}`} iso={post.created_at} />

@@ -18,6 +18,8 @@
 --     page members and to users whose subscription has not expired.
 --     Everyone else gets the row with is_locked = true and empty content, so the UI
 --     can render a blurred locked card without shipping the post to the browser.
+--     image_count is still returned, so a locked photo can appear as a blurred
+--     lock in the post strip without its URL.
 --   * Uploaded photos are stored as WebP in the public post-media bucket.
 --     Paths are unguessable. Locked posts never receive those URLs.
 
@@ -115,12 +117,16 @@ create table public.subscriptions (
 create table public.posts (
   id uuid primary key default gen_random_uuid(),
   page_id uuid not null references public.creator_pages (id) on delete cascade,
+  title text,
   content text,
   image_url text,
   is_paywalled boolean not null default false,
+  is_draft boolean not null default false,
   created_at timestamptz not null default now(),
+  constraint posts_title_length check (title is null or char_length(trim(title)) between 1 and 120),
   constraint posts_has_body check (
-    (content is not null and char_length(trim(content)) > 0)
+    (title is not null and char_length(trim(title)) > 0)
+    or (content is not null and char_length(trim(content)) > 0)
     or (image_url is not null and char_length(trim(image_url)) > 0)
   )
 );
@@ -880,12 +886,14 @@ create or replace function public.get_page_feed(
 returns table (
   id uuid,
   page_id uuid,
+  title text,
   content text,
   image_url text,
   images jsonb,
   goals jsonb,
   is_paywalled boolean,
   is_locked boolean,
+  image_count integer,
   created_at timestamptz
 )
 language sql
@@ -896,6 +904,11 @@ as $$
   select
     p.id,
     p.page_id,
+    case
+      when p.is_paywalled = false or private.viewer_has_page_access(p.page_id)
+        then p.title
+      else null
+    end as title,
     case
       when p.is_paywalled = false or private.viewer_has_page_access(p.page_id)
         then p.content
@@ -955,9 +968,16 @@ as $$
     end as goals,
     p.is_paywalled,
     (p.is_paywalled and not private.viewer_has_page_access(p.page_id)) as is_locked,
+    case
+      when exists (select 1 from public.post_images i where i.post_id = p.id)
+        then (select count(*)::integer from public.post_images i where i.post_id = p.id)
+      when p.image_url is not null then 1
+      else 0
+    end as image_count,
     p.created_at
   from public.posts p
   where p.page_id = p_page_id
+    and p.is_draft = false
   order by p.created_at desc
   limit least(greatest(coalesce(p_limit, 50), 1), 100);
 $$;
@@ -1305,14 +1325,21 @@ create policy followers_delete_own
   using (user_id = auth.uid());
 
 -- Direct reads. Paywalled rows are visible to staff and active subscribers.
--- The public page should call get_page_feed so locked posts still appear.
+-- Drafts are visible to staff only. The public page should call get_page_feed
+-- so locked posts still appear.
 create policy posts_select_visible
   on public.posts
   for select
   to anon, authenticated
   using (
-    is_paywalled = false
-    or private.viewer_has_page_access(page_id)
+    private.is_page_member(page_id, array['owner', 'manager']::public.page_role[])
+    or (
+      is_draft = false
+      and (
+        is_paywalled = false
+        or private.viewer_has_page_access(page_id)
+      )
+    )
   );
 
 create policy posts_insert_staff

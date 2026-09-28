@@ -9,7 +9,7 @@ import { CreatorView } from "@/components/creator/creator-view";
 import { PageTheme } from "@/components/creator/page-theme";
 import { RedeemForm } from "@/components/redeem-form";
 import { isSupabaseConfigured } from "@/lib/env";
-import type { AccessCode, FeedPost, Goal, ManagedPost, PageMember, WishlistCategory } from "@/lib/types";
+import type { AccessCode, FeedPost, Goal, ManagedPost, PageMember, PostImage, WishlistCategory } from "@/lib/types";
 
 export const metadata: Metadata = { title: "UI preview" };
 
@@ -71,9 +71,9 @@ const posts: FeedPost[] = [
   {
     id: "post-1",
     page_id: "page-1",
+    title: "Long climb",
     content: "Long climb today. The saddle is finished and the bell barely rings.",
     image_url: null,
-    images: [],
     goals: [
       {
         id: "goal-1",
@@ -130,20 +130,24 @@ const posts: FeedPost[] = [
     viewerReactions: ["heart"],
     is_paywalled: false,
     is_locked: false,
+    image_count: 2,
+    images: [swatch("Climb", "#8a4b2f", "#1c120c"), swatch("Ridge", "#c47a45", "#3a2418")],
     created_at: "2026-09-20T00:00:00.000Z",
   },
   {
     id: "post-2",
     page_id: "page-1",
+    title: null,
     content: null,
     image_url: null,
-    images: [],
+    images: [swatch("Members", "#243044", "#101820")],
     goals: [],
     comments: [],
     reactions: [],
     viewerReactions: [],
     is_paywalled: true,
     is_locked: true,
+    image_count: 1,
     created_at: "2026-09-22T00:00:00.000Z",
   },
 ];
@@ -152,6 +156,7 @@ const managedPosts: ManagedPost[] = [
   {
     id: "post-1",
     page_id: "page-1",
+    title: "Long climb",
     content: "Long climb today.",
     image_url: null,
     images: [],
@@ -166,11 +171,13 @@ const managedPosts: ManagedPost[] = [
       { emoji: "clap", count: 1 },
     ],
     is_paywalled: false,
+    is_draft: false,
     created_at: "2026-09-20T00:00:00.000Z",
   },
   {
     id: "post-2",
     page_id: "page-1",
+    title: "Descent notes",
     content: "Members-only note from the descent.",
     image_url: null,
     images: [],
@@ -178,6 +185,7 @@ const managedPosts: ManagedPost[] = [
     comment_count: 0,
     reactions: [{ emoji: "fire", count: 6 }],
     is_paywalled: true,
+    is_draft: true,
     created_at: "2026-09-22T18:30:00.000Z",
   },
 ];
@@ -199,6 +207,11 @@ const codes: AccessCode[] = [
   },
 ];
 
+function swatch(label: string, from: string, to: string): PostImage {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs><rect width="640" height="360" fill="url(#g)"/><text x="40" y="196" fill="white" font-size="64" font-family="Georgia,serif">${label}</text></svg>`;
+  return { url: `data:image/svg+xml,${encodeURIComponent(svg)}`, width: 640, height: 360 };
+}
+
 export default function PreviewPage() {
   if (isSupabaseConfigured()) notFound();
 
@@ -210,8 +223,8 @@ export default function PreviewPage() {
         pageId="page-1"
         displayName="Nova Live"
         bio="Nightly TikTok lives, backstage notes, and the gear fund."
-        covers={[]}
-        paypalLink="https://www.paypal.com/paypalme"
+        covers={[swatch("Night", "#5c3317", "#1a120c"), swatch("Stage", "#1e3a5f", "#0d1520")]}
+        paypalLink="https://www.paypal.com/paypalme/novalive"
         followerCount={128}
         isFollowing={false}
         signedIn={false}

@@ -4,8 +4,8 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
-  { id: "wishlist", label: "Wishlist" },
   { id: "posts", label: "Posts" },
+  { id: "wishlist", label: "Wishlist" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -17,13 +17,15 @@ export function CreatorTabs({
   wishlist: React.ReactNode;
   posts: React.ReactNode;
 }) {
-  const [tab, setTab] = useState<TabId>("wishlist");
+  const [tab, setTab] = useState<TabId>("posts");
 
   function move(current: TabId, key: string) {
     if (key !== "ArrowRight" && key !== "ArrowLeft") return;
-    const next: TabId = current === "wishlist" ? "posts" : "wishlist";
-    setTab(next);
-    document.getElementById(`tab-${next}`)?.focus();
+    const index = tabs.findIndex((item) => item.id === current);
+    const delta = key === "ArrowRight" ? 1 : -1;
+    const next = tabs[(index + delta + tabs.length) % tabs.length];
+    setTab(next.id);
+    document.getElementById(`tab-${next.id}`)?.focus();
   }
 
   return (
@@ -58,6 +60,9 @@ export function CreatorTabs({
           );
         })}
       </div>
+      <div role="tabpanel" id="panel-posts" aria-labelledby="tab-posts" hidden={tab !== "posts"} className="mt-6">
+        {posts}
+      </div>
       <div
         role="tabpanel"
         id="panel-wishlist"
@@ -66,9 +71,6 @@ export function CreatorTabs({
         className="mt-6"
       >
         {wishlist}
-      </div>
-      <div role="tabpanel" id="panel-posts" aria-labelledby="tab-posts" hidden={tab !== "posts"} className="mt-6">
-        {posts}
       </div>
     </div>
   );
