@@ -93,7 +93,7 @@ export function PageDetailsForm({ page, covers }: { page: CreatorPage; covers: C
         <Input id="paypal_link" name="paypal_link" type="url" defaultValue={page.paypal_link ?? ""} placeholder="https://" className="h-10" />
       </div>
       <FormMessage state={state} />
-      <Button type="submit" disabled={pending || preparing}>
+      <Button type="submit" disabled={pending || preparing} className="h-12 w-full text-base">
         {pending ? "Saving…" : "Save details"}
       </Button>
     </form>

@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { updatePageDesign } from "@/app/actions/pages";
 import { PageTheme } from "@/components/creator/page-theme";
+import { usePageDesignChoice } from "@/components/dashboard/page-design-choice";
 import { FormMessage } from "@/components/form-message";
 import { Button } from "@/components/ui/button";
 import { pageFonts, pagePalettes, pageFont, pagePalette, type PageFont, type PagePalette } from "@/lib/page-theme";
@@ -23,8 +24,21 @@ export function DesignManager({
   font: string;
 }) {
   const [state, action, pending] = useActionState(updatePageDesign.bind(null, slug), null);
+  const choice = usePageDesignChoice();
   const [paletteId, setPaletteId] = useState<PagePalette>(pagePalette(palette));
   const [fontId, setFontId] = useState<PageFont>(pageFont(font));
+  const paletteValue = choice?.palette ?? paletteId;
+  const fontValue = choice?.font ?? fontId;
+
+  function choosePalette(id: PagePalette) {
+    if (choice) choice.setPalette(id);
+    else setPaletteId(id);
+  }
+
+  function chooseFont(id: PageFont) {
+    if (choice) choice.setFont(id);
+    else setFontId(id);
+  }
 
   return (
     <div className={pageFontVariables}>
@@ -45,8 +59,8 @@ export function DesignManager({
                   type="radio"
                   name="palette"
                   value={item.id}
-                  checked={paletteId === item.id}
-                  onChange={() => setPaletteId(item.id)}
+                  checked={paletteValue === item.id}
+                  onChange={() => choosePalette(item.id)}
                   className="sr-only"
                 />
                 <span
@@ -80,8 +94,8 @@ export function DesignManager({
                   type="radio"
                   name="font"
                   value={item.id}
-                  checked={fontId === item.id}
-                  onChange={() => setFontId(item.id)}
+                  checked={fontValue === item.id}
+                  onChange={() => chooseFont(item.id)}
                   className="sr-only"
                 />
                 <span>
@@ -98,14 +112,14 @@ export function DesignManager({
         </fieldset>
 
         <FormMessage state={state} />
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending} className="h-12 w-full text-base">
           {pending ? "Saving…" : "Save design"}
         </Button>
       </form>
 
       <aside aria-label="Page preview" className="max-sm:order-first sm:sticky sm:top-20">
         <p className="mb-2 text-sm font-medium">Preview</p>
-        <PageTheme palette={paletteId} font={fontId} preview className="overflow-hidden rounded-2xl ring-1 ring-foreground/15">
+        <PageTheme palette={paletteValue} font={fontValue} preview className="overflow-hidden rounded-2xl ring-1 ring-foreground/15">
           <div className="cover-fallback h-16" />
           <div className="px-3 pb-3">
             <p className="mt-2 text-[10px] tracking-wide text-muted-foreground uppercase">@{slug}</p>

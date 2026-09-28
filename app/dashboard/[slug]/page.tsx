@@ -7,6 +7,7 @@ import { DesignManager } from "@/components/dashboard/design-manager";
 import { GoalManager } from "@/components/dashboard/goal-manager";
 import { MemberManager } from "@/components/dashboard/member-manager";
 import { LinksManager } from "@/components/dashboard/links-manager";
+import { PageDesignChoice } from "@/components/dashboard/page-design-choice";
 import { PageDetailsForm } from "@/components/dashboard/page-forms";
 import { PostManager } from "@/components/dashboard/post-manager";
 import { SetupNotice } from "@/components/setup-notice";
@@ -156,6 +157,7 @@ export default async function DashboardSlugPage({ params }: Props) {
         </p>
       ) : null}
 
+      <PageDesignChoice palette={page.palette} font={page.font}>
       <DashboardTabs
         details={
           <PageDetailsForm
@@ -166,7 +168,7 @@ export default async function DashboardSlugPage({ params }: Props) {
             })}
           />
         }
-        links={<LinksManager slug={page.slug} links={page.links} iconSet={page.icon_set} />}
+        links={<LinksManager slug={page.slug} links={page.links} iconSet={page.icon_set} palette={page.palette} font={page.font} />}
         design={
           <DesignManager
             slug={page.slug}
@@ -204,6 +206,7 @@ export default async function DashboardSlugPage({ params }: Props) {
         managers={<MemberManager slug={page.slug} role={role} members={members} />}
         access={<AccessManager slug={page.slug} codes={(codesResult.data ?? []).map(toAccessCode)} />}
       />
+      </PageDesignChoice>
     </div>
   );
 }

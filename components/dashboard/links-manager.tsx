@@ -2,24 +2,36 @@
 
 import { useActionState, useState } from "react";
 import { updatePageLinks } from "@/app/actions/pages";
+import { PageTheme } from "@/components/creator/page-theme";
 import { ServiceIcon } from "@/components/creator/service-icon";
+import { usePageDesignChoice } from "@/components/dashboard/page-design-choice";
 import { FormMessage } from "@/components/form-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { iconSets, isPageService, pageServiceGroups, pageServices, type IconSet, type PageLinks, type PageServiceId } from "@/lib/page-links";
+import { iconSets, isPageService, pageServiceGroups, pageServices, serviceLabel, type IconSet, type PageLinks, type PageServiceId } from "@/lib/page-links";
+import { pageFont, pagePalette } from "@/lib/page-theme";
 import { cn } from "@/lib/utils";
+
+const sampleServices: PageServiceId[] = ["tiktok", "instagram", "youtube", "x", "twitch", "discord", "spotify", "patreon"];
 
 export function LinksManager({
   slug,
   links,
   iconSet,
+  palette,
+  font,
 }: {
   slug: string;
   links: PageLinks;
   iconSet: IconSet;
+  palette: string;
+  font: string;
 }) {
   const [state, action, pending] = useActionState(updatePageLinks.bind(null, slug), null);
+  const choice = usePageDesignChoice();
+  const paletteId = choice?.palette ?? pagePalette(palette);
+  const fontId = choice?.font ?? pageFont(font);
   const [setId, setSetId] = useState<IconSet>(iconSet);
   const [open, setOpen] = useState<PageServiceId[]>(() =>
     pageServices.flatMap((service) => (links[service.id] ? [service.id] : [])),
@@ -49,8 +61,9 @@ export function LinksManager({
       <fieldset className="space-y-3">
         <legend className="text-sm font-medium">Icon style</legend>
         <p className="text-sm text-muted-foreground">
-          These are the brand marks from Simple Icons, Font Awesome, and Bootstrap Icons. A style that has no mark for a
-          service falls back to the brand logo, so Kick, OnlyFans, and Ko-fi still show.
+          These are the brand marks from Simple Icons, Font Awesome, and Bootstrap Icons. The preview uses the palette
+          and type from Design. A style that has no mark for a service falls back to the brand logo, so Kick, OnlyFans,
+          and Ko-fi still show.
         </p>
         <div className="grid gap-2 sm:grid-cols-3">
           {iconSets.map((set) => (
@@ -73,13 +86,13 @@ export function LinksManager({
                 <span className="block text-sm font-medium">{set.label}</span>
                 <span className="mt-1 block text-xs text-muted-foreground">{set.detail}</span>
               </span>
-              {visible.length > 0 ? (
-                <span className="flex flex-wrap gap-1.5 text-foreground" aria-hidden="true">
-                  {visible.map((service) => (
-                    <ServiceIcon key={service.id} id={service.id} set={set.id} className="size-5" />
-                  ))}
-                </span>
-              ) : null}
+              <IconSetPreview
+                set={set.id}
+                services={visible.length > 0 ? visible.map((service) => service.id) : sampleServices}
+                sample={visible.length === 0}
+                palette={paletteId}
+                font={fontId}
+              />
             </label>
           ))}
         </div>
@@ -141,9 +154,42 @@ export function LinksManager({
       ))}
 
       <FormMessage state={state} />
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending} className="h-12 w-full text-base">
         {pending ? "Saving…" : "Save links"}
       </Button>
     </form>
+  );
+}
+
+function IconSetPreview({
+  set,
+  services,
+  sample,
+  palette,
+  font,
+}: {
+  set: IconSet;
+  services: PageServiceId[];
+  sample: boolean;
+  palette: ReturnType<typeof pagePalette>;
+  font: ReturnType<typeof pageFont>;
+}) {
+  return (
+    <div aria-hidden="true">
+      <PageTheme palette={palette} font={font} preview className="rounded-lg px-2 py-2.5">
+        <span className="mb-2 block text-center font-heading text-sm leading-none">{sample ? "Sample" : "Your links"}</span>
+        <span className="flex flex-wrap justify-center gap-1.5">
+          {services.map((id) => (
+            <span
+              key={id}
+              title={serviceLabel(id)}
+              className="inline-flex size-9 items-center justify-center rounded-full bg-foreground/8 text-foreground ring-1 ring-foreground/15"
+            >
+              <ServiceIcon id={id} set={set} className="size-4" />
+            </span>
+          ))}
+        </span>
+      </PageTheme>
+    </div>
   );
 }

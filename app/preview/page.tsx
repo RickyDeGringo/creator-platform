@@ -5,6 +5,7 @@ import { DesignManager } from "@/components/dashboard/design-manager";
 import { GoalManager } from "@/components/dashboard/goal-manager";
 import { MemberManager } from "@/components/dashboard/member-manager";
 import { LinksManager } from "@/components/dashboard/links-manager";
+import { PageDesignChoice } from "@/components/dashboard/page-design-choice";
 import { PageDetailsForm } from "@/components/dashboard/page-forms";
 import { PostManager } from "@/components/dashboard/post-manager";
 import { CreatorView } from "@/components/creator/creator-view";
@@ -266,6 +267,7 @@ export default function PreviewPage() {
         notice={null}
       />
       </PageTheme>
+      <PageDesignChoice palette="ember" font="editorial">
       <div className="mx-auto w-full max-w-3xl space-y-12 px-4 pb-20">
         <section className="space-y-4">
           <h2 className="font-heading text-3xl">Details</h2>
@@ -273,7 +275,13 @@ export default function PreviewPage() {
         </section>
         <section className="space-y-4">
           <h2 className="font-heading text-3xl">Links</h2>
-          <LinksManager slug="nova-live" links={previewPage.links} iconSet={previewPage.icon_set} />
+          <LinksManager
+            slug="nova-live"
+            links={previewPage.links}
+            iconSet={previewPage.icon_set}
+            palette="ember"
+            font="editorial"
+          />
         </section>
         <section className="space-y-4">
           <h2 className="font-heading text-3xl">Design</h2>
@@ -306,6 +314,7 @@ export default function PreviewPage() {
           <AccessManager slug="preview" codes={codes} />
         </section>
       </div>
+      </PageDesignChoice>
     </div>
   );
 }
