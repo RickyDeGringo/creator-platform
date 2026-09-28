@@ -42,7 +42,7 @@ export const loadCreatorPage = cache(async (slug: string): Promise<LoadCreatorRe
   const supabase = await createClient();
   const { data: pageRow, error: pageError } = await supabase
     .from("creator_pages")
-    .select("id, slug, display_name, bio, cover_image, paypal_link, palette, font, created_at")
+    .select("id, slug, display_name, bio, cover_image, paypal_link, palette, font, icon_set, links, created_at")
     .eq("slug", slug)
     .maybeSingle();
 

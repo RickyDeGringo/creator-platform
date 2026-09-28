@@ -1,9 +1,11 @@
 import { CoverBanner } from "@/components/creator/cover-banner";
 import { CreatorTabs } from "@/components/creator/creator-tabs";
 import { FollowButton } from "@/components/creator/follow-button";
+import { PageLinkRow } from "@/components/creator/page-link-row";
 import { PostFeed } from "@/components/creator/post-feed";
 import { WishlistBoard } from "@/components/creator/wishlist-board";
 import { formatFollowers } from "@/lib/format";
+import type { IconSet, PageLinks } from "@/lib/page-links";
 import type { CommentAccess, FeedPost, Goal, PostImage, WishlistCategory } from "@/lib/types";
 
 export function CreatorView({
@@ -14,6 +16,8 @@ export function CreatorView({
   covers,
   paypalLink,
   followerCount,
+  links,
+  iconSet,
   isFollowing,
   signedIn,
   commentAccess,
@@ -30,6 +34,8 @@ export function CreatorView({
   covers: PostImage[];
   paypalLink: string | null;
   followerCount: number;
+  links: PageLinks;
+  iconSet: IconSet;
   isFollowing: boolean;
   signedIn: boolean;
   commentAccess: CommentAccess;
@@ -54,6 +60,7 @@ export function CreatorView({
           </div>
           {bio ? <p className="mt-4 max-w-xl text-base leading-7 text-pretty">{bio}</p> : null}
           <p className="mt-5 text-sm text-muted-foreground">{formatFollowers(followerCount)}</p>
+          <PageLinkRow links={links} iconSet={iconSet} />
           {notice ? (
             <p role="alert" className="mt-4 text-sm text-destructive">
               {notice}

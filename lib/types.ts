@@ -1,3 +1,4 @@
+import type { IconSet, PageLinks } from "@/lib/page-links";
 import type { ReactionCount, ReactionEmoji } from "@/lib/reactions";
 
 export type PageRole = "owner" | "manager";
@@ -24,6 +25,8 @@ export type CreatorPage = {
   paypal_link: string | null;
   palette: string;
   font: string;
+  icon_set: IconSet;
+  links: PageLinks;
   created_at: string;
 };
 

@@ -4,6 +4,7 @@ import { AccessManager } from "@/components/dashboard/access-manager";
 import { DesignManager } from "@/components/dashboard/design-manager";
 import { GoalManager } from "@/components/dashboard/goal-manager";
 import { MemberManager } from "@/components/dashboard/member-manager";
+import { LinksManager } from "@/components/dashboard/links-manager";
 import { PageDetailsForm } from "@/components/dashboard/page-forms";
 import { PostManager } from "@/components/dashboard/post-manager";
 import { CreatorView } from "@/components/creator/creator-view";
@@ -217,6 +218,15 @@ const previewPage: CreatorPage = {
   paypal_link: "https://www.paypal.com/paypalme/novalive",
   palette: "ember",
   font: "editorial",
+  icon_set: "brand",
+  links: {
+    website: "https://nova.example",
+    tiktok: "https://www.tiktok.com/@novalive",
+    instagram: "https://www.instagram.com/novalive",
+    x: "https://x.com/novalive",
+    youtube: "https://www.youtube.com/@novalive",
+    whatsapp: "https://wa.me/15555550100",
+  },
   created_at: "2026-08-01T00:00:00.000Z",
 };
 
@@ -244,6 +254,8 @@ export default function PreviewPage() {
         covers={[swatch("Night", "#5c3317", "#1a120c"), swatch("Stage", "#1e3a5f", "#0d1520")]}
         paypalLink="https://www.paypal.com/paypalme/novalive"
         followerCount={128}
+        links={previewPage.links}
+        iconSet={previewPage.icon_set}
         isFollowing={false}
         signedIn={false}
         commentAccess={{ signedIn: false, following: false, member: false, viewerId: null }}
@@ -258,6 +270,10 @@ export default function PreviewPage() {
         <section className="space-y-4">
           <h2 className="font-heading text-3xl">Details</h2>
           <PageDetailsForm page={previewPage} covers={previewCovers} />
+        </section>
+        <section className="space-y-4">
+          <h2 className="font-heading text-3xl">Links</h2>
+          <LinksManager slug="nova-live" links={previewPage.links} iconSet={previewPage.icon_set} />
         </section>
         <section className="space-y-4">
           <h2 className="font-heading text-3xl">Design</h2>

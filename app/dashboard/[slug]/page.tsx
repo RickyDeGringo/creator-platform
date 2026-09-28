@@ -6,6 +6,7 @@ import { DashboardTabs } from "@/components/dashboard/dashboard-tabs";
 import { DesignManager } from "@/components/dashboard/design-manager";
 import { GoalManager } from "@/components/dashboard/goal-manager";
 import { MemberManager } from "@/components/dashboard/member-manager";
+import { LinksManager } from "@/components/dashboard/links-manager";
 import { PageDetailsForm } from "@/components/dashboard/page-forms";
 import { PostManager } from "@/components/dashboard/post-manager";
 import { SetupNotice } from "@/components/setup-notice";
@@ -42,7 +43,7 @@ export default async function DashboardSlugPage({ params }: Props) {
   const supabase = await createClient();
   const { data: pageRow, error: pageError } = await supabase
     .from("creator_pages")
-    .select("id, slug, display_name, bio, cover_image, paypal_link, palette, font, created_at")
+    .select("id, slug, display_name, bio, cover_image, paypal_link, palette, font, icon_set, links, created_at")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -165,6 +166,7 @@ export default async function DashboardSlugPage({ params }: Props) {
             })}
           />
         }
+        links={<LinksManager slug={page.slug} links={page.links} iconSet={page.icon_set} />}
         design={
           <DesignManager
             slug={page.slug}

@@ -51,6 +51,8 @@ export default async function CreatorPage({ params, searchParams }: Props) {
       covers={covers}
       paypalLink={page.paypal_link}
       followerCount={followerCount}
+      links={page.links}
+      iconSet={page.icon_set}
       isFollowing={isFollowing}
       signedIn={Boolean(viewer)}
       commentAccess={{

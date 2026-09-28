@@ -8,6 +8,8 @@
 --   * Creating a creator page inserts the current user as owner.
 --   * Owners and managers share the dashboard.
 --   * palette and font are named design presets on the public page.
+--   * links and icon_set are the public profile buttons. icon_set picks
+--     brand marks, Font Awesome, or Bootstrap Icons.
 --   * Owners add a manager with add_page_manager. The email must already
 --     belong to an account; email stays in auth.users.
 --   * Owners hand the page to a manager with transfer_page_ownership.
@@ -70,6 +72,30 @@ create table public.users (
   )
 );
 
+create or replace function public.page_links_ok(links jsonb)
+returns boolean
+language sql
+immutable
+as $$
+  select
+    jsonb_typeof(links) = 'object'
+    and not exists (
+      select 1
+      from jsonb_each_text(links) as item(key, value)
+      where item.key not in (
+          'website', 'email', 'facebook', 'instagram', 'x', 'tiktok', 'youtube', 'twitch', 'kick',
+          'discord', 'snapchat', 'whatsapp', 'telegram', 'threads', 'bluesky', 'linkedin', 'pinterest',
+          'reddit', 'spotify', 'soundcloud', 'applemusic', 'bandcamp', 'patreon', 'kofi', 'onlyfans',
+          'fansly', 'amazon'
+        )
+        or char_length(item.value) < 1
+        or char_length(item.value) > 500
+        or item.value !~ '^(https://|mailto:[^[:space:]]+@[^[:space:]]+)$'
+    );
+$$;
+
+revoke all on function public.page_links_ok(jsonb) from public;
+
 create table public.creator_pages (
   id uuid primary key default gen_random_uuid(),
   slug text not null,
@@ -79,6 +105,8 @@ create table public.creator_pages (
   paypal_link text,
   palette text not null default 'ember',
   font text not null default 'editorial',
+  icon_set text not null default 'brand',
+  links jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   constraint creator_pages_slug_unique unique (slug),
   constraint creator_pages_slug_format check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
@@ -91,7 +119,11 @@ create table public.creator_pages (
   ),
   constraint creator_pages_font_known check (
     font in ('editorial', 'newsroom', 'story', 'gallery', 'studio', 'letterpress')
-  )
+  ),
+  constraint creator_pages_icon_set_known check (
+    icon_set in ('brand', 'fontawesome', 'bootstrap')
+  ),
+  constraint creator_pages_links_shape check (public.page_links_ok(links))
 );
 
 create table public.page_members (

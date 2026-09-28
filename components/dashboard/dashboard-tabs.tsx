@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 const tabs = [
   { id: "details", label: "Details" },
+  { id: "links", label: "Links" },
   { id: "design", label: "Design" },
   { id: "posts", label: "Posts" },
   { id: "wishlist", label: "Wishlist" },
@@ -16,6 +17,7 @@ type TabId = (typeof tabs)[number]["id"];
 
 export function DashboardTabs({
   details,
+  links,
   design,
   posts,
   wishlist,
@@ -23,6 +25,7 @@ export function DashboardTabs({
   access,
 }: {
   details: React.ReactNode;
+  links: React.ReactNode;
   design: React.ReactNode;
   posts: React.ReactNode;
   wishlist: React.ReactNode;
@@ -30,7 +33,7 @@ export function DashboardTabs({
   access: React.ReactNode;
 }) {
   const [tab, setTab] = useState<TabId>("details");
-  const panels: Record<TabId, React.ReactNode> = { details, design, posts, wishlist, managers, access };
+  const panels: Record<TabId, React.ReactNode> = { details, links, design, posts, wishlist, managers, access };
 
   function select(id: TabId) {
     setTab(id);

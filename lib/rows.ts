@@ -1,4 +1,5 @@
 import { httpsUrl } from "@/lib/format";
+import { pageIconSet, pageLinksFrom } from "@/lib/page-links";
 import { pageFont, pagePalette } from "@/lib/page-theme";
 import type {
   AccessCode,
@@ -30,6 +31,8 @@ export function toPage(value: unknown): CreatorPage {
     paypal_link: row.paypal_link == null ? null : String(row.paypal_link),
     palette: pagePalette(row.palette),
     font: pageFont(row.font),
+    icon_set: pageIconSet(row.icon_set),
+    links: pageLinksFrom(row.links),
     created_at: String(row.created_at),
   };
 }

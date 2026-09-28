@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isSupabaseConfigured } from "@/lib/env";
 import { httpsUrl } from "@/lib/format";
 import { PHOTO_MAX_COUNT } from "@/lib/photo-frame";
+import { isIconSet, isPageService, pageServices, parsePageLink, type PageLinks } from "@/lib/page-links";
 import { isPageFont, isPagePalette } from "@/lib/page-theme";
 import { getStaffPage } from "@/lib/staff";
 import { photoFiles, removeStored, storePhotos } from "@/lib/store-photos";
@@ -220,4 +221,31 @@ export async function updatePageDesign(slug: string, _prev: ActionState, formDat
   revalidatePath(`/${slug}`);
   revalidatePath(`/dashboard/${slug}`);
   return { success: "Page design saved." };
+}
+
+export async function updatePageLinks(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const access = await getStaffPage(slug);
+  if (!access.ok) return { error: access.error };
+
+  const iconSet = String(formData.get("icon_set") ?? "");
+  if (!isIconSet(iconSet)) return { error: "Choose an icon style." };
+
+  const links: PageLinks = {};
+  for (const service of pageServices) {
+    if (!isPageService(service.id)) continue;
+    const parsed = parsePageLink(service.id, String(formData.get(service.id) ?? ""));
+    if ("error" in parsed) return { error: parsed.error };
+    if (parsed.url) links[service.id] = parsed.url;
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("creator_pages")
+    .update({ icon_set: iconSet, links })
+    .eq("id", access.page.id);
+  if (error) return { error: friendlyDbError(error.message) };
+
+  revalidatePath(`/${slug}`);
+  revalidatePath(`/dashboard/${slug}`);
+  return { success: "Links saved." };
 }
