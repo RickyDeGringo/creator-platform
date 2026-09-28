@@ -1,14 +1,21 @@
+import { cn } from "@/lib/utils";
+
 export function SubscribersToggle({
   id,
   defaultChecked = false,
+  className,
 }: {
   id: string;
   defaultChecked?: boolean;
+  className?: string;
 }) {
   return (
     <label
       htmlFor={id}
-      className="group flex h-10 min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-lg border border-border bg-background px-3 text-sm font-medium select-none hover:bg-muted has-[:checked]:border-transparent has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 sm:min-h-10"
+      className={cn(
+        "group flex h-11 min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-lg border border-border bg-background px-3 text-sm font-medium select-none hover:bg-muted has-[:checked]:border-transparent has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
+        className,
+      )}
     >
       <input
         id={id}

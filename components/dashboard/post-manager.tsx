@@ -291,9 +291,12 @@ function NewPostForm({
 
       <WishlistItemPicker goals={goals} categories={categories} revision={state} />
 
-      <div className="grid grid-cols-2 items-end gap-3 *:min-w-0">
-        <PublishedAtField id="published-at" revision={state} />
-        <SubscribersToggle id="subscribers-only" />
+      <div className="grid grid-cols-2 items-center gap-x-3 gap-y-2">
+        <Label htmlFor="published-at" className="col-start-1 row-start-1">
+          Published
+        </Label>
+        <PublishedAtField id="published-at" revision={state} unlabeled className="col-start-1 row-start-2 h-11" />
+        <SubscribersToggle id="subscribers-only" className="col-start-2 row-start-2 h-11" />
       </div>
 
       <FormMessage state={state} />

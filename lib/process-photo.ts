@@ -1,5 +1,13 @@
 import sharp from "sharp";
-import { cropRect, PHOTO_MAX_HEIGHT, PHOTO_MAX_WIDTH, PHOTO_UPLOAD_MAX_BYTES } from "@/lib/photo-frame";
+import {
+  COVER_TARGET_HEIGHT,
+  COVER_TARGET_WIDTH,
+  coverCropRect,
+  cropRect,
+  PHOTO_MAX_HEIGHT,
+  PHOTO_MAX_WIDTH,
+  PHOTO_UPLOAD_MAX_BYTES,
+} from "@/lib/photo-frame";
 
 const MAX_PIXELS = 24_000_000;
 const ALLOWED = new Set(["jpeg", "png", "webp", "gif", "avif", "tiff", "heif"]);
@@ -11,7 +19,7 @@ export class PhotoError extends Error {
   }
 }
 
-export async function processPhoto(input: Buffer) {
+export async function processPhoto(input: Buffer, frame: "post" | "cover" = "post") {
   if (input.byteLength === 0) throw new PhotoError("That photo is empty.");
   if (input.byteLength > PHOTO_UPLOAD_MAX_BYTES) throw new PhotoError("That photo is still too large after resizing.");
 
@@ -38,14 +46,16 @@ export async function processPhoto(input: Buffer) {
     throw new PhotoError("Could not read that photo.");
   }
 
-  const crop = cropRect(oriented.info.width, oriented.info.height);
+  const crop = frame === "cover" ? coverCropRect(oriented.info.width, oriented.info.height) : cropRect(oriented.info.width, oriented.info.height);
+  const maxWidth = frame === "cover" ? COVER_TARGET_WIDTH : PHOTO_MAX_WIDTH;
+  const maxHeight = frame === "cover" ? COVER_TARGET_HEIGHT : PHOTO_MAX_HEIGHT;
 
   try {
     const output = await sharp(oriented.data, { limitInputPixels: MAX_PIXELS })
       .extract(crop)
       .resize({
-        width: PHOTO_MAX_WIDTH,
-        height: PHOTO_MAX_HEIGHT,
+        width: maxWidth,
+        height: maxHeight,
         fit: "inside",
         withoutEnlargement: true,
       })

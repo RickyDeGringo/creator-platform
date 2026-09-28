@@ -1,8 +1,17 @@
-import { cropRect, outputSize, PHOTO_SOURCE_MAX_BYTES, PHOTO_UPLOAD_MAX_BYTES, photoSourceLimitLabel } from "@/lib/photo-frame";
+import {
+  clampCrop,
+  coverOutputSize,
+  cropRect,
+  outputSize,
+  PHOTO_SOURCE_MAX_BYTES,
+  PHOTO_UPLOAD_MAX_BYTES,
+  photoSourceLimitLabel,
+  type CropRect,
+} from "@/lib/photo-frame";
 
 const ACCEPTED = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
-export async function preparePhotoFile(file: File) {
+export async function preparePhotoFile(file: File, crop?: CropRect) {
   if (!ACCEPTED.has(file.type)) {
     throw new Error("Use a JPEG, PNG, WebP, or GIF photo.");
   }
@@ -18,8 +27,8 @@ export async function preparePhotoFile(file: File) {
   }
 
   try {
-    const crop = cropRect(bitmap.width, bitmap.height);
-    const size = outputSize(crop.width, crop.height);
+    const frame = crop ? clampCrop(crop, bitmap.width, bitmap.height) : cropRect(bitmap.width, bitmap.height);
+    const size = crop ? coverOutputSize(frame.width, frame.height) : outputSize(frame.width, frame.height);
     const canvas = document.createElement("canvas");
     canvas.width = size.width;
     canvas.height = size.height;
@@ -27,17 +36,7 @@ export async function preparePhotoFile(file: File) {
     if (!context) throw new Error("Could not prepare that photo.");
     context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = "high";
-    context.drawImage(
-      bitmap,
-      crop.left,
-      crop.top,
-      crop.width,
-      crop.height,
-      0,
-      0,
-      size.width,
-      size.height,
-    );
+    context.drawImage(bitmap, frame.left, frame.top, frame.width, frame.height, 0, 0, size.width, size.height);
 
     const encoded = await encodeUnderLimit(canvas);
     if (!encoded) throw new Error("Could not prepare that photo.");

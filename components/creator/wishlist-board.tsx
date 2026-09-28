@@ -4,9 +4,8 @@ import { useMemo, useState } from "react";
 import { GoalList } from "@/components/creator/goal-list";
 import { tagPillClass } from "@/components/wishlist-tags";
 import { Input } from "@/components/ui/input";
-import { asNumber, formatMoney, progressPercent } from "@/lib/format";
+import { asNumber, progressPercent } from "@/lib/format";
 import type { Goal, WishlistCategory } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 const sorts = [
   { id: "newest", label: "Newest" },
@@ -19,6 +18,14 @@ const sorts = [
 ] as const;
 
 type SortId = (typeof sorts)[number]["id"];
+
+const valueBands = [
+  { id: "under-10", label: "Under $10", match: (amount: number) => amount < 10 },
+  { id: "mid", label: "$10-$50", match: (amount: number) => amount >= 10 && amount <= 50 },
+  { id: "over-50", label: "Over $50", match: (amount: number) => amount > 50 },
+] as const;
+
+type ValueBandId = (typeof valueBands)[number]["id"];
 
 function remaining(goal: Goal) {
   return Math.max(0, asNumber(goal.target_amount) - asNumber(goal.current_amount_raised));
@@ -53,13 +60,7 @@ export function WishlistBoard({
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortId>("newest");
   const [categoryId, setCategoryId] = useState("all");
-  const bounds = useMemo(() => valueBounds(goals), [goals]);
-  const [low, setLow] = useState(bounds.min);
-  const [high, setHigh] = useState(bounds.max);
-  const rangeLow = clamp(Math.min(low, high), bounds.min, bounds.max);
-  const rangeHigh = clamp(Math.max(low, high), bounds.min, bounds.max);
-  const canFilterValue = bounds.max > bounds.min;
-  const rangeNarrowed = canFilterValue && (rangeLow > bounds.min || rangeHigh < bounds.max);
+  const [bands, setBands] = useState<ValueBandId[]>([]);
 
   const names = useMemo(() => {
     const map: Record<string, string> = {};
@@ -70,29 +71,31 @@ export function WishlistBoard({
   const hasUntagged = goals.some((goal) => !goal.category_ids.some((id) => names[id]));
   const showCategories = categories.length > 0;
 
-  const visible = useMemo(() => {
+  const searched = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const matched = goals.filter((goal) => {
-      const tagged = goal.category_ids.some((id) => names[id]);
-      if (categoryId === "none" && tagged) return false;
-      if (categoryId !== "all" && categoryId !== "none" && !goal.category_ids.includes(categoryId)) return false;
-      if (canFilterValue) {
-        const amount = asNumber(goal.target_amount);
-        if (amount < rangeLow || amount > rangeHigh) return false;
-      }
-      if (!needle) return true;
-      return (
-        goal.title.toLowerCase().includes(needle) || (goal.description ?? "").toLowerCase().includes(needle)
-      );
-    });
+    if (!needle) return goals;
+    return goals.filter(
+      (goal) =>
+        goal.title.toLowerCase().includes(needle) || (goal.description ?? "").toLowerCase().includes(needle),
+    );
+  }, [goals, query]);
+
+  const visible = useMemo(() => {
+    const matched = searched.filter(
+      (goal) => inCategory(goal, categoryId, names) && inBands(goal, bands),
+    );
     return sortGoals(matched, sort);
-  }, [canFilterValue, categoryId, goals, names, query, rangeHigh, rangeLow, sort]);
+  }, [bands, categoryId, names, searched, sort]);
+
+  function countFor(category: string, bandIds: ValueBandId[]) {
+    return searched.filter((goal) => inCategory(goal, category, names) && inBands(goal, bandIds)).length;
+  }
 
   if (goals.length === 0) {
     return <p className="text-sm text-muted-foreground">Nothing on the wishlist yet.</p>;
   }
 
-  const empty = emptyCopy(query, categoryId, rangeNarrowed);
+  const empty = emptyCopy(query, categoryId, bands.length > 0);
 
   return (
     <div className="space-y-4">
@@ -119,16 +122,27 @@ export function WishlistBoard({
         </select>
       </div>
 
-      {canFilterValue ? (
-        <ValueRange
-          min={bounds.min}
-          max={bounds.max}
-          low={rangeLow}
-          high={rangeHigh}
-          onLow={(value) => setLow(Math.min(value, rangeHigh))}
-          onHigh={(value) => setHigh(Math.max(value, rangeLow))}
-        />
-      ) : null}
+      <div role="group" aria-label="Value" className="flex flex-wrap gap-2">
+        {valueBands.map((band) => {
+          const selected = bands.includes(band.id);
+          const count = countFor(categoryId, [band.id]);
+          return (
+            <button
+              key={band.id}
+              type="button"
+              aria-pressed={selected}
+              onClick={() =>
+                setBands((current) =>
+                  current.includes(band.id) ? current.filter((id) => id !== band.id) : [...current, band.id],
+                )
+              }
+              className={tagPillClass(selected)}
+            >
+              {band.label} ({count})
+            </button>
+          );
+        })}
+      </div>
 
       {showCategories ? (
         <div role="group" aria-label="Tags" className="flex flex-wrap gap-2">
@@ -138,7 +152,7 @@ export function WishlistBoard({
             onClick={() => setCategoryId("all")}
             className={tagPillClass(categoryId === "all")}
           >
-            All
+            All ({countFor("all", bands)})
           </button>
           {categories.map((category) => (
             <button
@@ -148,7 +162,7 @@ export function WishlistBoard({
               onClick={() => setCategoryId(category.id)}
               className={tagPillClass(categoryId === category.id)}
             >
-              {category.name}
+              {category.name} ({countFor(category.id, bands)})
             </button>
           ))}
           {hasUntagged ? (
@@ -158,7 +172,7 @@ export function WishlistBoard({
               onClick={() => setCategoryId("none")}
               className={tagPillClass(categoryId === "none")}
             >
-              Untagged
+              Untagged ({countFor("none", bands)})
             </button>
           ) : null}
         </div>
@@ -189,14 +203,17 @@ export function WishlistBoard({
   );
 }
 
-function valueBounds(goals: Goal[]) {
-  if (goals.length === 0) return { min: 0, max: 0 };
-  const values = goals.map((goal) => asNumber(goal.target_amount));
-  return { min: Math.floor(Math.min(...values)), max: Math.ceil(Math.max(...values)) };
+function inCategory(goal: Goal, categoryId: string, names: Record<string, string>) {
+  const tagged = goal.category_ids.some((id) => names[id]);
+  if (categoryId === "all") return true;
+  if (categoryId === "none") return !tagged;
+  return goal.category_ids.includes(categoryId);
 }
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
+function inBands(goal: Goal, bands: ValueBandId[]) {
+  if (bands.length === 0) return true;
+  const amount = asNumber(goal.target_amount);
+  return valueBands.some((band) => bands.includes(band.id) && band.match(amount));
 }
 
 function emptyCopy(query: string, categoryId: string, rangeNarrowed: boolean) {
@@ -205,74 +222,4 @@ function emptyCopy(query: string, categoryId: string, rangeNarrowed: boolean) {
   if (categoryId !== "all") return "Nothing with this tag yet.";
   if (rangeNarrowed) return "Nothing in that value range.";
   return "Nothing matches that search.";
-}
-
-function ValueRange({
-  min,
-  max,
-  low,
-  high,
-  onLow,
-  onHigh,
-}: {
-  min: number;
-  max: number;
-  low: number;
-  high: number;
-  onLow: (value: number) => void;
-  onHigh: (value: number) => void;
-}) {
-  const [front, setFront] = useState<"low" | "high">("high");
-  const span = max - min || 1;
-  const start = ((low - min) / span) * 100;
-  const end = ((high - min) / span) * 100;
-  const step = span > 1000 ? Math.max(1, Math.round(span / 100)) : 1;
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-baseline justify-between gap-3 text-sm">
-        <span id="wishlist-value-label">Value</span>
-        <span className="text-muted-foreground">
-          {formatMoney(low)} – {formatMoney(high)}
-        </span>
-      </div>
-      <div role="group" aria-labelledby="wishlist-value-label" className="relative h-11">
-        <div className="absolute top-1/2 right-2 left-2 h-1 -translate-y-1/2 rounded-full bg-foreground/15" />
-        <div
-          className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-primary"
-          style={{ left: `calc(0.5rem + (100% - 1rem) * ${start / 100})`, width: `calc((100% - 1rem) * ${(end - start) / 100})` }}
-        />
-        <input
-          type="range"
-          className={cn("dual-range", front === "low" ? "z-20" : "z-10")}
-          min={min}
-          max={max}
-          step={step}
-          value={low}
-          aria-label="Minimum value"
-          aria-valuemin={min}
-          aria-valuemax={high}
-          aria-valuenow={low}
-          aria-valuetext={formatMoney(low)}
-          onPointerDown={() => setFront("low")}
-          onChange={(event) => onLow(Number(event.target.value))}
-        />
-        <input
-          type="range"
-          className={cn("dual-range", front === "high" ? "z-20" : "z-10")}
-          min={min}
-          max={max}
-          step={step}
-          value={high}
-          aria-label="Maximum value"
-          aria-valuemin={low}
-          aria-valuemax={max}
-          aria-valuenow={high}
-          aria-valuetext={formatMoney(high)}
-          onPointerDown={() => setFront("high")}
-          onChange={(event) => onHigh(Number(event.target.value))}
-        />
-      </div>
-    </div>
-  );
 }

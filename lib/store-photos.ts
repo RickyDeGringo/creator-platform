@@ -25,7 +25,7 @@ export async function storePhotos(
 
   try {
     for (const file of files) {
-      const processed = await processPhoto(Buffer.from(await file.arrayBuffer()));
+      const processed = await processPhoto(Buffer.from(await file.arrayBuffer()), folder === "cover" ? "cover" : "post");
       const path = `${pageId}/${folder}/${crypto.randomUUID()}.webp`;
       const { error } = await supabase.storage.from("post-media").upload(path, processed.buffer, {
         contentType: "image/webp",

@@ -3,6 +3,7 @@
 import { useActionState, useRef, useState } from "react";
 import { createPage, updatePage } from "@/app/actions/pages";
 import { FormMessage } from "@/components/form-message";
+import { CoverPhotosField, type CoverPhotosHandle } from "@/components/dashboard/cover-photos-field";
 import { PhotoField, type PhotoFieldHandle } from "@/components/dashboard/photo-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,7 +64,7 @@ export function CreatePageForm() {
 export function PageDetailsForm({ page, covers }: { page: CreatorPage; covers: CoverImage[] }) {
   const [state, action, pending] = useActionState(updatePage.bind(null, page.slug), null);
   const [preparing, setPreparing] = useState(false);
-  const photosRef = useRef<PhotoFieldHandle>(null);
+  const photosRef = useRef<CoverPhotosHandle>(null);
 
   return (
     <form
@@ -73,6 +74,7 @@ export function PageDetailsForm({ page, covers }: { page: CreatorPage; covers: C
       }}
       className="space-y-4 rounded-2xl bg-card p-4 ring-1 ring-foreground/10"
     >
+      <CoverPhotosField id="cover-photos" covers={covers} revision={state} onPreparing={setPreparing} fieldRef={photosRef} />
       <div className="space-y-2">
         <Label htmlFor="display_name">Display name</Label>
         <Input id="display_name" name="display_name" required maxLength={80} defaultValue={page.display_name} className="h-10" />
@@ -81,31 +83,6 @@ export function PageDetailsForm({ page, covers }: { page: CreatorPage; covers: C
         <Label htmlFor="bio">Bio</Label>
         <Textarea id="bio" name="bio" maxLength={500} defaultValue={page.bio ?? ""} className="min-h-20" />
       </div>
-      {covers.length > 0 ? (
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium">Current cover</legend>
-          <ul className="flex gap-2 overflow-x-auto">
-            {covers.map((cover, index) => (
-              <li key={cover.id} className="relative shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={cover.url} alt={`Cover ${index + 1}`} className="h-24 w-36 rounded-lg bg-muted object-cover" />
-                <label className="mt-1 flex min-h-11 items-center gap-2 text-sm">
-                  <input type="checkbox" name="remove_cover" value={cover.id} className="size-5 shrink-0" />
-                  Remove
-                </label>
-              </li>
-            ))}
-          </ul>
-        </fieldset>
-      ) : null}
-      <PhotoField
-        id="cover-photos"
-        label="Add cover photos"
-        hint="Up to 5 in total. Wide shots are cropped to the banner, never stretched."
-        revision={state}
-        onPreparing={setPreparing}
-        fieldRef={photosRef}
-      />
       <div className="space-y-2">
         <Label htmlFor="cover_image">Add a cover image URL</Label>
         <Input id="cover_image" name="cover_image" type="url" placeholder="https://" className="h-10" />

@@ -4,12 +4,13 @@ import { AccessManager } from "@/components/dashboard/access-manager";
 import { DesignManager } from "@/components/dashboard/design-manager";
 import { GoalManager } from "@/components/dashboard/goal-manager";
 import { MemberManager } from "@/components/dashboard/member-manager";
+import { PageDetailsForm } from "@/components/dashboard/page-forms";
 import { PostManager } from "@/components/dashboard/post-manager";
 import { CreatorView } from "@/components/creator/creator-view";
 import { PageTheme } from "@/components/creator/page-theme";
 import { RedeemForm } from "@/components/redeem-form";
 import { isSupabaseConfigured } from "@/lib/env";
-import type { AccessCode, FeedPost, Goal, ManagedPost, PageMember, PostImage, WishlistCategory } from "@/lib/types";
+import type { AccessCode, CoverImage, CreatorPage, FeedPost, Goal, ManagedPost, PageMember, PostImage, WishlistCategory } from "@/lib/types";
 
 export const metadata: Metadata = { title: "UI preview" };
 
@@ -207,10 +208,27 @@ const codes: AccessCode[] = [
   },
 ];
 
+const previewPage: CreatorPage = {
+  id: "page-1",
+  slug: "nova-live",
+  display_name: "Nova Live",
+  bio: "Nightly TikTok lives, backstage notes, and the gear fund.",
+  cover_image: null,
+  paypal_link: "https://www.paypal.com/paypalme/novalive",
+  palette: "ember",
+  font: "editorial",
+  created_at: "2026-08-01T00:00:00.000Z",
+};
+
 function swatch(label: string, from: string, to: string): PostImage {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs><rect width="640" height="360" fill="url(#g)"/><text x="40" y="196" fill="white" font-size="64" font-family="Georgia,serif">${label}</text></svg>`;
   return { url: `data:image/svg+xml,${encodeURIComponent(svg)}`, width: 640, height: 360 };
 }
+
+const previewCovers: CoverImage[] = [
+  { id: "cover-1", ...swatch("Night", "#5c3317", "#1a120c"), storage_path: null },
+  { id: "cover-2", ...swatch("Stage", "#1e3a5f", "#0d1520"), storage_path: null },
+];
 
 export default function PreviewPage() {
   if (isSupabaseConfigured()) notFound();
@@ -237,6 +255,10 @@ export default function PreviewPage() {
       />
       </PageTheme>
       <div className="mx-auto w-full max-w-3xl space-y-12 px-4 pb-20">
+        <section className="space-y-4">
+          <h2 className="font-heading text-3xl">Details</h2>
+          <PageDetailsForm page={previewPage} covers={previewCovers} />
+        </section>
         <section className="space-y-4">
           <h2 className="font-heading text-3xl">Design</h2>
           <DesignManager
