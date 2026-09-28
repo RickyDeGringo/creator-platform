@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { addPageManager, removePageManager } from "@/app/actions/members";
+import { addPageManager, removePageManager, transferPageOwnership } from "@/app/actions/members";
 import { FormMessage } from "@/components/form-message";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export function MemberManager({
 }) {
   const [added, addAction] = useActionState(addPageManager.bind(null, slug), null);
   const [removed, removeAction] = useActionState(removePageManager.bind(null, slug), null);
+  const [transferred, transferAction] = useActionState(transferPageOwnership.bind(null, slug), null);
   const isOwner = role === "owner";
 
   return (
@@ -37,12 +38,29 @@ export function MemberManager({
               <div className="flex items-center gap-2">
                 <Badge variant="secondary">{member.role}</Badge>
                 {isOwner && member.role === "manager" ? (
-                  <form action={removeAction}>
-                    <input type="hidden" name="userId" value={member.userId} />
-                    <Button type="submit" variant="ghost" size="sm">
-                      Remove
-                    </Button>
-                  </form>
+                  <>
+                    <form action={transferAction}>
+                      <input type="hidden" name="userId" value={member.userId} />
+                      <Button
+                        type="submit"
+                        variant="outline"
+                        size="sm"
+                        onClick={(event) => {
+                          if (!window.confirm(`Make @${member.username} the owner? You will become a manager.`)) {
+                            event.preventDefault();
+                          }
+                        }}
+                      >
+                        Make owner
+                      </Button>
+                    </form>
+                    <form action={removeAction}>
+                      <input type="hidden" name="userId" value={member.userId} />
+                      <Button type="submit" variant="ghost" size="sm">
+                        Remove
+                      </Button>
+                    </form>
+                  </>
                 ) : null}
               </div>
             </div>
@@ -50,6 +68,7 @@ export function MemberManager({
         </div>
       </div>
 
+      <FormMessage state={transferred} />
       <FormMessage state={removed} />
 
       {isOwner ? (
@@ -57,7 +76,7 @@ export function MemberManager({
           <div>
             <h3 className="font-medium">Add a manager</h3>
             <p className="text-sm text-muted-foreground">
-              Use the email they signed up with. They can edit this page. You stay the owner.
+              Use the email they signed up with. They can edit this page. You stay the owner until you hand the page to a manager.
             </p>
           </div>
           <div className="space-y-2">
@@ -77,7 +96,7 @@ export function MemberManager({
           <Button type="submit">Add manager</Button>
         </form>
       ) : (
-        <p className="text-sm text-muted-foreground">The page owner adds and removes managers.</p>
+        <p className="text-sm text-muted-foreground">The page owner adds and removes managers, and can hand the page to one of them.</p>
       )}
     </div>
   );

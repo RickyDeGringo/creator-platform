@@ -4,10 +4,12 @@ import { useFormStatus } from "react-dom";
 import { toggleFollow } from "@/app/actions/follow";
 import { Button, buttonVariants } from "@/components/ui/button";
 
+const followClass = "h-12 rounded-xl px-6 text-base sm:h-14 sm:px-8 sm:text-lg";
+
 function FollowSubmit({ following }: { following: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" size="lg" variant={following ? "outline" : "default"} disabled={pending}>
+    <Button type="submit" size="lg" variant={following ? "outline" : "default"} disabled={pending} className={followClass}>
       {pending ? "Saving…" : following ? "Following" : "Follow"}
     </Button>
   );
@@ -26,7 +28,7 @@ export function FollowButton({
 }) {
   if (!signedIn) {
     return (
-      <a href={`/login?next=/${encodeURIComponent(slug)}`} className={buttonVariants({ size: "lg" })}>
+      <a href={`/login?next=/${encodeURIComponent(slug)}`} className={buttonVariants({ size: "lg", className: followClass })}>
         Follow
       </a>
     );

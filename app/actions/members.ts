@@ -41,6 +41,37 @@ export async function addPageManager(
   };
 }
 
+export async function transferPageOwnership(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const access = await getStaffPage(slug);
+  if (!access.ok) return { error: access.error };
+  if (access.role !== "owner") return { error: "Only the page owner can transfer this page." };
+
+  const userId = String(formData.get("userId") ?? "");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+    return { error: "Choose a manager on this page." };
+  }
+  if (userId === access.userId) return { error: "Ownership can only move to a manager of this page." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("transfer_page_ownership", {
+    p_page_id: access.page.id,
+    p_user_id: userId,
+  });
+
+  if (error) return { error: friendlyDbError(error.message) };
+  refresh(slug);
+  const username = typeof data === "string" ? data : null;
+  return {
+    success: username
+      ? `@${username} is now the owner. You are a manager.`
+      : "Ownership transferred. You are a manager.",
+  };
+}
+
 export async function removePageManager(
   slug: string,
   _prev: ActionState,

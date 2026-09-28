@@ -41,19 +41,17 @@ export function CreatorView({
 }) {
   return (
     <div>
-      <div className="relative">
-        <CoverBanner images={covers} />
-        <div className="pointer-events-none absolute right-3 bottom-3 z-10 sm:right-4 sm:bottom-4">
-          <div className="pointer-events-auto drop-shadow-md">
-            <FollowButton slug={slug} pageId={pageId} isFollowing={isFollowing} signedIn={signedIn} />
-          </div>
-        </div>
-      </div>
+      <CoverBanner images={covers} />
 
       <div className="mx-auto w-full max-w-3xl px-4 pb-20">
         <div className="mt-5">
           <p className="text-sm tracking-wide text-muted-foreground uppercase">@{slug}</p>
-          <h1 className="font-heading text-5xl leading-none tracking-tight sm:text-6xl">{displayName}</h1>
+          <div className="mt-1 flex items-center justify-between gap-4">
+            <h1 className="min-w-0 font-heading text-5xl leading-none tracking-tight break-words sm:text-6xl">
+              {displayName}
+            </h1>
+            <FollowButton slug={slug} pageId={pageId} isFollowing={isFollowing} signedIn={signedIn} />
+          </div>
           {bio ? <p className="mt-4 max-w-xl text-base leading-7 text-pretty">{bio}</p> : null}
           <p className="mt-5 text-sm text-muted-foreground">{formatFollowers(followerCount)}</p>
           {notice ? (

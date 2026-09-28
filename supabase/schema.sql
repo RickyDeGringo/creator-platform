@@ -10,6 +10,8 @@
 --   * palette and font are named design presets on the public page.
 --   * Owners add a manager with add_page_manager. The email must already
 --     belong to an account; email stays in auth.users.
+--   * Owners hand the page to a manager with transfer_page_ownership.
+--     The previous owner becomes a manager. A page has one owner.
 --   * list_page_staff is the public read of owner and manager usernames.
 --   * Paid access lives in subscriptions. Clients cannot insert or update that table.
 --   * Redeeming a code and manually granting access go through security-definer functions.
@@ -269,6 +271,9 @@ create table public.post_goals (
 );
 
 create index page_members_user_idx on public.page_members (user_id);
+create unique index page_members_one_owner
+  on public.page_members (page_id)
+  where role = 'owner';
 create index followers_user_idx on public.followers (user_id);
 create index subscriptions_user_idx on public.subscriptions (user_id);
 create index posts_page_created_idx on public.posts (page_id, created_at desc);
@@ -1176,6 +1181,79 @@ begin
 end;
 $$;
 
+-- The caller must be the owner. The recipient must already be a manager.
+-- Both role changes happen in one statement so the page keeps a single owner.
+create or replace function public.transfer_page_ownership(
+  p_page_id uuid,
+  p_user_id uuid
+)
+returns text
+language plpgsql
+security definer
+set search_path = public, private, pg_catalog
+as $$
+declare
+  v_username text;
+  v_owner uuid;
+  v_target_role public.page_role;
+  v_updated integer;
+begin
+  if auth.uid() is null then
+    raise exception 'not_authenticated' using errcode = '28000';
+  end if;
+
+  if p_user_id is null or p_user_id = auth.uid() then
+    raise exception 'not_a_manager' using errcode = '42501';
+  end if;
+
+  select user_id
+  into v_owner
+  from public.page_members
+  where page_id = p_page_id
+    and role = 'owner'
+  for update;
+
+  if v_owner is distinct from auth.uid() then
+    raise exception 'transfer_forbidden' using errcode = '42501';
+  end if;
+
+  select role
+  into v_target_role
+  from public.page_members
+  where page_id = p_page_id
+    and user_id = p_user_id
+  for update;
+
+  if v_target_role is distinct from 'manager'::public.page_role then
+    raise exception 'not_a_manager' using errcode = '42501';
+  end if;
+
+  select username
+  into v_username
+  from public.users
+  where id = p_user_id;
+
+  if v_username is null then
+    raise exception 'profile_missing' using errcode = 'P0002';
+  end if;
+
+  update public.page_members
+  set role = case user_id
+    when auth.uid() then 'manager'::public.page_role
+    else 'owner'::public.page_role
+  end
+  where page_id = p_page_id
+    and user_id in (auth.uid(), p_user_id);
+
+  get diagnostics v_updated = row_count;
+  if v_updated <> 2 then
+    raise exception 'not_a_manager' using errcode = '42501';
+  end if;
+
+  return v_username;
+end;
+$$;
+
 -- Public list of who runs a page. Usernames only; email stays in auth.users.
 create or replace function public.list_page_staff(p_page_id uuid)
 returns table (username text, role public.page_role)
@@ -1210,6 +1288,9 @@ grant execute on function public.create_access_code(uuid, integer) to authentica
 
 revoke all on function public.add_page_manager(uuid, text) from public, anon;
 grant execute on function public.add_page_manager(uuid, text) to authenticated;
+
+revoke all on function public.transfer_page_ownership(uuid, uuid) from public, anon;
+grant execute on function public.transfer_page_ownership(uuid, uuid) to authenticated;
 
 revoke all on function public.list_page_staff(uuid) from public;
 grant execute on function public.list_page_staff(uuid) to anon, authenticated;

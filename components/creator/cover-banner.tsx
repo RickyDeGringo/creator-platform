@@ -46,7 +46,7 @@ export function CoverBanner({ images }: { images: PostImage[] }) {
               <Chevron direction="right" />
             </button>
           </div>
-          <div className="absolute bottom-20 left-1/2 flex -translate-x-1/2">
+          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2">
             {images.map((image, dot) => (
               <button
                 key={image.url}

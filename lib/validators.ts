@@ -91,6 +91,11 @@ export function friendlyDbError(message: string) {
   }
   if (message.includes("already_manager")) return "That account already manages this page.";
   if (message.includes("already_owner")) return "That account already owns this page.";
+  if (message.includes("not_a_manager")) return "Ownership can only move to a manager of this page.";
+  if (message.includes("transfer_forbidden")) return "Only the page owner can transfer this page.";
+  if (message.includes("transfer_page_ownership")) {
+    return "Transferring ownership is not available until the latest database migration is applied.";
+  }
   if (message.includes("invalid_email")) return "Enter a valid email address.";
   if (message.includes("owner_only")) return "Only the page owner can add or remove managers.";
   if (message.includes("add_page_manager")) {
