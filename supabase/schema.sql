@@ -9,7 +9,7 @@
 --   * Owners and managers share the dashboard.
 --   * palette and font are named design presets on the public page.
 --   * links and icon_set are the public profile buttons. icon_set picks
---     brand marks, Font Awesome, or Bootstrap Icons.
+--     logos, colour, line, bold, or letters.
 --   * Owners add a manager with add_page_manager. The email must already
 --     belong to an account; email stays in auth.users.
 --   * Owners hand the page to a manager with transfer_page_ownership.
@@ -121,7 +121,7 @@ create table public.creator_pages (
     font in ('editorial', 'newsroom', 'story', 'gallery', 'studio', 'letterpress')
   ),
   constraint creator_pages_icon_set_known check (
-    icon_set in ('brand', 'fontawesome', 'bootstrap')
+    icon_set in ('brand', 'colour', 'line', 'solid', 'letters')
   ),
   constraint creator_pages_links_shape check (public.page_links_ok(links))
 );

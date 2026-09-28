@@ -1,18 +1,28 @@
 export const iconSets = [
   {
     id: "brand",
-    label: "Brand marks",
-    detail: "Simple Icons, the usual official-style logos.",
+    label: "Logos",
+    detail: "Official marks, drawn in your page colour.",
   },
   {
-    id: "fontawesome",
-    label: "Font Awesome",
-    detail: "Font Awesome brand icons.",
+    id: "colour",
+    label: "Colour",
+    detail: "Each logo on a disc of its own colour.",
   },
   {
-    id: "bootstrap",
-    label: "Bootstrap Icons",
-    detail: "Bootstrap’s brand icons.",
+    id: "line",
+    label: "Line",
+    detail: "Thin outlines, all one weight.",
+  },
+  {
+    id: "solid",
+    label: "Bold",
+    detail: "Heavy shapes on a solid disc.",
+  },
+  {
+    id: "letters",
+    label: "Letters",
+    detail: "Initials set in your page type.",
   },
 ] as const;
 
@@ -65,8 +75,47 @@ export function isIconSet(value: unknown): value is IconSet {
   return iconSets.some((set) => set.id === value);
 }
 
+const retiredIconSets: Record<string, IconSet> = {
+  fontawesome: "brand",
+  bootstrap: "brand",
+};
+
 export function pageIconSet(value: unknown): IconSet {
+  if (typeof value === "string" && value in retiredIconSets) return retiredIconSets[value];
   return isIconSet(value) ? value : "brand";
+}
+
+export function letterMark(id: PageServiceId) {
+  const marks: Record<PageServiceId, string> = {
+    website: "W",
+    email: "@",
+    tiktok: "Tt",
+    instagram: "Ig",
+    youtube: "Yt",
+    x: "X",
+    facebook: "Fb",
+    snapchat: "Sn",
+    threads: "Th",
+    bluesky: "Bs",
+    linkedin: "In",
+    pinterest: "Pt",
+    reddit: "Rd",
+    twitch: "Tw",
+    kick: "K",
+    discord: "Ds",
+    whatsapp: "Wa",
+    telegram: "Tg",
+    onlyfans: "Of",
+    fansly: "Fs",
+    patreon: "Pa",
+    kofi: "Kf",
+    amazon: "Az",
+    spotify: "Sp",
+    soundcloud: "Sc",
+    applemusic: "Am",
+    bandcamp: "Bc",
+  };
+  return marks[id];
 }
 
 export function isPageService(value: string): value is PageServiceId {

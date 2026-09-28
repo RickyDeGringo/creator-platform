@@ -3,13 +3,13 @@
 import { useActionState, useState } from "react";
 import { updatePageLinks } from "@/app/actions/pages";
 import { PageTheme } from "@/components/creator/page-theme";
-import { ServiceIcon } from "@/components/creator/service-icon";
+import { ProfileMark } from "@/components/creator/profile-mark";
 import { usePageDesignChoice } from "@/components/dashboard/page-design-choice";
 import { FormMessage } from "@/components/form-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { iconSets, isPageService, pageServiceGroups, pageServices, serviceLabel, type IconSet, type PageLinks, type PageServiceId } from "@/lib/page-links";
+import { iconSets, isPageService, pageServiceGroups, pageServices, type IconSet, type PageLinks, type PageServiceId } from "@/lib/page-links";
 import { pageFont, pagePalette } from "@/lib/page-theme";
 import { cn } from "@/lib/utils";
 
@@ -61,11 +61,10 @@ export function LinksManager({
       <fieldset className="space-y-3">
         <legend className="text-sm font-medium">Icon style</legend>
         <p className="text-sm text-muted-foreground">
-          These are the brand marks from Simple Icons, Font Awesome, and Bootstrap Icons. The preview uses the palette
-          and type from Design. A style that has no mark for a service falls back to the brand logo, so Kick, OnlyFans,
-          and Ko-fi still show.
+          Five different looks, from official logos to initials in your page type. The preview uses the palette and type
+          from Design.
         </p>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-2">
           {iconSets.map((set) => (
             <label
               key={set.id}
@@ -129,7 +128,7 @@ export function LinksManager({
               <div key={service.id} className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <Label htmlFor={`link-${service.id}`} className="flex items-center gap-2">
-                    <ServiceIcon id={service.id} set={setId} className="size-4" />
+                    <ProfileMark id={service.id} set={setId} className="size-6" />
                     {service.label}
                   </Label>
                   <Button type="button" variant="ghost" size="sm" onClick={() => setOpen((current) => current.filter((id) => id !== service.id))}>
@@ -180,13 +179,7 @@ function IconSetPreview({
         <span className="mb-2 block text-center font-heading text-sm leading-none">{sample ? "Sample" : "Your links"}</span>
         <span className="flex flex-wrap justify-center gap-1.5">
           {services.map((id) => (
-            <span
-              key={id}
-              title={serviceLabel(id)}
-              className="inline-flex size-9 items-center justify-center rounded-full bg-foreground/8 text-foreground ring-1 ring-foreground/15"
-            >
-              <ServiceIcon id={id} set={set} className="size-4" />
-            </span>
+            <ProfileMark key={id} id={id} set={set} className="size-9" />
           ))}
         </span>
       </PageTheme>

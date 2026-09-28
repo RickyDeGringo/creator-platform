@@ -1,4 +1,4 @@
-import { ServiceIcon } from "@/components/creator/service-icon";
+import { ProfileMark } from "@/components/creator/profile-mark";
 import { pageServices, type IconSet, type PageLinks } from "@/lib/page-links";
 
 export function PageLinkRow({ links, iconSet }: { links: PageLinks; iconSet: IconSet }) {
@@ -18,9 +18,9 @@ export function PageLinkRow({ links, iconSet }: { links: PageLinks; iconSet: Ico
           aria-label={item.label}
           target={item.id === "email" ? undefined : "_blank"}
           rel={item.id === "email" ? undefined : "noopener noreferrer"}
-          className="inline-flex size-12 items-center justify-center rounded-full bg-foreground/8 text-foreground ring-1 ring-foreground/15 transition-colors hover:bg-foreground/14"
+          className="inline-flex rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <ServiceIcon id={item.id} set={iconSet} className="size-6" />
+          <ProfileMark id={item.id} set={iconSet} className="size-12 transition-transform hover:scale-105" />
         </a>
       ))}
     </nav>
