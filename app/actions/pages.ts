@@ -6,7 +6,15 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isSupabaseConfigured } from "@/lib/env";
 import { httpsUrl } from "@/lib/format";
 import { PHOTO_MAX_COUNT } from "@/lib/photo-frame";
-import { isIconSet, isPageService, pageServices, parsePageLink, type PageLinks } from "@/lib/page-links";
+import {
+  finalizeLinksOrder,
+  isIconSet,
+  isPageService,
+  pageServices,
+  parseLinksOrderField,
+  parsePageLink,
+  type PageLinks,
+} from "@/lib/page-links";
 import { isPageFont, isPagePalette } from "@/lib/page-theme";
 import { getStaffPage } from "@/lib/staff";
 import { photoFiles, removeStored, storePhotos } from "@/lib/store-photos";
@@ -238,10 +246,12 @@ export async function updatePageLinks(slug: string, _prev: ActionState, formData
     if (parsed.url) links[service.id] = parsed.url;
   }
 
+  const linksOrder = finalizeLinksOrder(parseLinksOrderField(String(formData.get("links_order") ?? "")), links);
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("creator_pages")
-    .update({ icon_set: iconSet, links })
+    .update({ icon_set: iconSet, links, links_order: linksOrder })
     .eq("id", access.page.id);
   if (error) return { error: friendlyDbError(error.message) };
 

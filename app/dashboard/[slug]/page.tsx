@@ -44,7 +44,7 @@ export default async function DashboardSlugPage({ params }: Props) {
   const supabase = await createClient();
   const { data: pageRow, error: pageError } = await supabase
     .from("creator_pages")
-    .select("id, slug, display_name, bio, cover_image, paypal_link, palette, font, icon_set, links, created_at")
+    .select("id, slug, display_name, bio, cover_image, paypal_link, palette, font, icon_set, links, links_order, created_at")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -168,7 +168,16 @@ export default async function DashboardSlugPage({ params }: Props) {
             })}
           />
         }
-        links={<LinksManager slug={page.slug} links={page.links} iconSet={page.icon_set} palette={page.palette} font={page.font} />}
+        links={
+          <LinksManager
+            slug={page.slug}
+            links={page.links}
+            linksOrder={page.links_order}
+            iconSet={page.icon_set}
+            palette={page.palette}
+            font={page.font}
+          />
+        }
         design={
           <DesignManager
             slug={page.slug}

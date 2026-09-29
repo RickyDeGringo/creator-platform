@@ -228,6 +228,7 @@ const previewPage: CreatorPage = {
     youtube: "https://www.youtube.com/@novalive",
     whatsapp: "https://wa.me/15555550100",
   },
+  links_order: ["youtube", "tiktok", "instagram", "x", "whatsapp", "website"],
   created_at: "2026-08-01T00:00:00.000Z",
 };
 
@@ -256,6 +257,7 @@ export default function PreviewPage() {
         paypalLink="https://www.paypal.com/paypalme/novalive"
         followerCount={128}
         links={previewPage.links}
+        linksOrder={previewPage.links_order}
         iconSet={previewPage.icon_set}
         isFollowing={false}
         signedIn={false}
@@ -278,6 +280,7 @@ export default function PreviewPage() {
           <LinksManager
             slug="nova-live"
             links={previewPage.links}
+            linksOrder={previewPage.links_order}
             iconSet={previewPage.icon_set}
             palette="ember"
             font="editorial"

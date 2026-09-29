@@ -1,4 +1,4 @@
-import type { IconSet, PageLinks } from "@/lib/page-links";
+import type { IconSet, PageLinks, PageServiceId } from "@/lib/page-links";
 import type { ReactionCount, ReactionEmoji } from "@/lib/reactions";
 
 export type PageRole = "owner" | "manager";
@@ -27,6 +27,7 @@ export type CreatorPage = {
   font: string;
   icon_set: IconSet;
   links: PageLinks;
+  links_order: PageServiceId[];
   created_at: string;
 };
 

@@ -1,10 +1,19 @@
 import { ProfileMark } from "@/components/creator/profile-mark";
-import { pageServices, type IconSet, type PageLinks } from "@/lib/page-links";
+import { orderedLinkIds, pageServices, type IconSet, type PageLinks, type PageServiceId } from "@/lib/page-links";
 
-export function PageLinkRow({ links, iconSet }: { links: PageLinks; iconSet: IconSet }) {
-  const items = pageServices.flatMap((service) => {
-    const href = links[service.id];
-    return href ? [{ ...service, href }] : [];
+export function PageLinkRow({
+  links,
+  linksOrder = [],
+  iconSet,
+}: {
+  links: PageLinks;
+  linksOrder?: PageServiceId[];
+  iconSet: IconSet;
+}) {
+  const items = orderedLinkIds(links, linksOrder).flatMap((id) => {
+    const service = pageServices.find((entry) => entry.id === id);
+    const href = links[id];
+    return service && href ? [{ ...service, href }] : [];
   });
   if (items.length === 0) return null;
 

@@ -101,6 +101,31 @@ $$;
 
 revoke all on function public.page_links_ok(jsonb) from public;
 
+create or replace function public.page_links_order_ok(link_order text[])
+returns boolean
+language sql
+immutable
+as $$
+  select
+    link_order is not null
+    and not exists (
+      select 1
+      from unnest(link_order) as item(id)
+      where item.id not in (
+          'website', 'email', 'facebook', 'instagram', 'x', 'tiktok', 'youtube', 'twitch', 'kick',
+          'discord', 'snapchat', 'whatsapp', 'telegram', 'threads', 'bluesky', 'linkedin', 'pinterest',
+          'reddit', 'spotify', 'soundcloud', 'applemusic', 'bandcamp', 'patreon', 'kofi', 'onlyfans',
+          'fansly', 'amazon'
+        )
+    )
+    and coalesce(array_length(link_order, 1), 0) = (
+      select count(distinct item.id)
+      from unnest(link_order) as item(id)
+    );
+$$;
+
+revoke all on function public.page_links_order_ok(text[]) from public;
+
 create table public.creator_pages (
   id uuid primary key default gen_random_uuid(),
   slug text not null,
@@ -112,6 +137,7 @@ create table public.creator_pages (
   font text not null default 'editorial',
   icon_set text not null default 'brand',
   links jsonb not null default '{}'::jsonb,
+  links_order text[] not null default '{}',
   created_at timestamptz not null default now(),
   constraint creator_pages_slug_unique unique (slug),
   constraint creator_pages_slug_format check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
@@ -128,7 +154,8 @@ create table public.creator_pages (
   constraint creator_pages_icon_set_known check (
     icon_set in ('brand', 'colour', 'line', 'solid', 'letters')
   ),
-  constraint creator_pages_links_shape check (public.page_links_ok(links))
+  constraint creator_pages_links_shape check (public.page_links_ok(links)),
+  constraint creator_pages_links_order_shape check (public.page_links_order_ok(links_order))
 );
 
 create table public.page_members (

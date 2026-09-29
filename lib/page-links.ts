@@ -157,6 +157,54 @@ export function pageLinksFrom(value: unknown): PageLinks {
   return links;
 }
 
+export function pageLinksOrderFrom(value: unknown): PageServiceId[] {
+  if (!Array.isArray(value)) return [];
+  const order: PageServiceId[] = [];
+  const seen = new Set<string>();
+  for (const entry of value) {
+    if (typeof entry !== "string" || !isPageService(entry) || seen.has(entry)) continue;
+    seen.add(entry);
+    order.push(entry);
+  }
+  return order;
+}
+
+export function parseLinksOrderField(raw: string): PageServiceId[] {
+  const order: PageServiceId[] = [];
+  const seen = new Set<string>();
+  for (const part of raw.split(",")) {
+    const id = part.trim();
+    if (!isPageService(id) || seen.has(id)) continue;
+    seen.add(id);
+    order.push(id);
+  }
+  return order;
+}
+
+export function initialLinkOrder(links: PageLinks, savedOrder: PageServiceId[], openIds: PageServiceId[]) {
+  const present = pageServices.flatMap((service) => (links[service.id] ? [service.id] : []));
+  const seed = savedOrder.length > 0 ? savedOrder : present;
+  const ordered = seed.filter((id) => openIds.includes(id));
+  const tail = openIds.filter((id) => !ordered.includes(id));
+  return [...ordered, ...tail];
+}
+
+export function orderedLinkIds(links: PageLinks, savedOrder: PageServiceId[]): PageServiceId[] {
+  const present = pageServices.flatMap((service) => (links[service.id] ? [service.id] : []));
+  if (savedOrder.length === 0) return present;
+  const ordered = savedOrder.filter((id) => links[id]);
+  const tail = present.filter((id) => !ordered.includes(id));
+  return [...ordered, ...tail];
+}
+
+export function finalizeLinksOrder(order: PageServiceId[], links: PageLinks): PageServiceId[] {
+  const saved = order.filter((id) => links[id]);
+  for (const service of pageServices) {
+    if (links[service.id] && !saved.includes(service.id)) saved.push(service.id);
+  }
+  return saved;
+}
+
 const HANDLE = /^[\w.]{1,50}$/;
 const SLUG = /^[\w.-]{1,80}$/;
 

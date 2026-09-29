@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
+import { GripVertical } from "lucide-react";
 import { updatePageLinks } from "@/app/actions/pages";
 import { PageTheme } from "@/components/creator/page-theme";
 import { ProfileMark } from "@/components/creator/profile-mark";
@@ -9,21 +10,34 @@ import { FormMessage } from "@/components/form-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { iconSets, isPageService, pageServiceGroups, pageServices, type IconSet, type PageLinks, type PageServiceId } from "@/lib/page-links";
+import {
+  iconSets,
+  initialLinkOrder,
+  isPageService,
+  pageServiceGroups,
+  pageServices,
+  type IconSet,
+  type PageLinks,
+  type PageServiceId,
+} from "@/lib/page-links";
 import { pageFont, pagePalette } from "@/lib/page-theme";
 import { cn } from "@/lib/utils";
 
 const sampleServices: PageServiceId[] = ["tiktok", "instagram", "youtube", "x", "twitch", "discord", "spotify", "patreon"];
 
+const serviceById = new Map(pageServices.map((service) => [service.id, service]));
+
 export function LinksManager({
   slug,
   links,
+  linksOrder,
   iconSet,
   palette,
   font,
 }: {
   slug: string;
   links: PageLinks;
+  linksOrder: PageServiceId[];
   iconSet: IconSet;
   palette: string;
   font: string;
@@ -33,17 +47,14 @@ export function LinksManager({
   const paletteId = choice?.palette ?? pagePalette(palette);
   const fontId = choice?.font ?? pageFont(font);
   const [setId, setSetId] = useState<IconSet>(iconSet);
-  const [open, setOpen] = useState<PageServiceId[]>(() =>
-    pageServices.flatMap((service) => (links[service.id] ? [service.id] : [])),
-  );
+  const [open, setOpen] = useState<PageServiceId[]>(() => {
+    const ids = pageServices.flatMap((service) => (links[service.id] ? [service.id] : []));
+    return initialLinkOrder(links, linksOrder, ids);
+  });
+  const dragIndex = useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
   const shown = new Set(open);
-  const visible = pageServices.filter((service) => shown.has(service.id));
-  const groups = pageServiceGroups()
-    .map((section) => ({
-      ...section,
-      services: section.services.filter((service) => shown.has(service.id)),
-    }))
-    .filter((section) => section.services.length > 0);
   const hidden = pageServiceGroups()
     .map((section) => ({
       ...section,
@@ -56,8 +67,24 @@ export function LinksManager({
     setOpen((current) => [...current, id]);
   }
 
+  function removeService(id: PageServiceId) {
+    setOpen((current) => current.filter((entry) => entry !== id));
+  }
+
+  function moveItem(from: number, to: number) {
+    if (from === to || from < 0 || to < 0 || from >= open.length || to >= open.length) return;
+    setOpen((current) => {
+      const next = [...current];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next;
+    });
+  }
+
   return (
     <form action={action} className="space-y-8 rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
+      <input type="hidden" name="links_order" value={open.join(",")} readOnly />
+
       <fieldset className="space-y-3">
         <legend className="text-sm font-medium">Icon style</legend>
         <p className="text-sm text-muted-foreground">
@@ -87,8 +114,8 @@ export function LinksManager({
               </span>
               <IconSetPreview
                 set={set.id}
-                services={visible.length > 0 ? visible.map((service) => service.id) : sampleServices}
-                sample={visible.length === 0}
+                services={open.length > 0 ? open : sampleServices}
+                sample={open.length === 0}
                 palette={paletteId}
                 font={fontId}
               />
@@ -120,37 +147,78 @@ export function LinksManager({
         </div>
       ) : null}
 
-      {groups.map((section) => (
-        <fieldset key={section.group} className="space-y-4">
-          <legend className="font-heading text-2xl">{section.group}</legend>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {section.services.map((service) => (
-              <div key={service.id} className="space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <Label htmlFor={`link-${service.id}`} className="flex items-center gap-2">
-                    <ProfileMark id={service.id} set={setId} className="size-6" />
-                    {service.label}
-                  </Label>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setOpen((current) => current.filter((id) => id !== service.id))}>
+      {open.length > 0 ? (
+        <fieldset className="space-y-3">
+          <legend className="font-heading text-2xl">Profiles</legend>
+          <p className="text-sm text-muted-foreground">Drag the handle to set the order on your public page.</p>
+          <ul className="space-y-2">
+            {open.map((id, index) => {
+              const service = serviceById.get(id);
+              if (!service) return null;
+              return (
+                <li
+                  key={id}
+                  className={cn(
+                    "flex items-center gap-2 rounded-xl bg-muted/40 px-2 py-2 ring-1 ring-foreground/10",
+                    dragOverIndex === index && "ring-2 ring-primary",
+                  )}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setDragOverIndex(index);
+                  }}
+                  onDragLeave={() => setDragOverIndex((current) => (current === index ? null : current))}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    const from = dragIndex.current;
+                    dragIndex.current = null;
+                    setDragOverIndex(null);
+                    if (from == null) return;
+                    moveItem(from, index);
+                  }}
+                >
+                  <button
+                    type="button"
+                    draggable
+                    aria-label={`Drag ${service.label}`}
+                    className="inline-flex size-9 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/5 hover:text-foreground active:cursor-grabbing"
+                    onDragStart={(event) => {
+                      dragIndex.current = index;
+                      event.dataTransfer.effectAllowed = "move";
+                      event.dataTransfer.setData("text/plain", String(index));
+                    }}
+                    onDragEnd={() => {
+                      dragIndex.current = null;
+                      setDragOverIndex(null);
+                    }}
+                  >
+                    <GripVertical className="size-4" aria-hidden="true" />
+                  </button>
+                  <ProfileMark id={id} set={setId} className="size-9 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <Label htmlFor={`link-${id}`} className="sr-only">
+                      {service.label}
+                    </Label>
+                    <Input
+                      id={`link-${id}`}
+                      name={id}
+                      type="text"
+                      inputMode={id === "email" ? "email" : "url"}
+                      maxLength={500}
+                      defaultValue={links[id] ?? ""}
+                      placeholder={service.placeholder}
+                      className="h-10"
+                      autoComplete="off"
+                    />
+                  </div>
+                  <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={() => removeService(id)}>
                     Remove
                   </Button>
-                </div>
-                <Input
-                  id={`link-${service.id}`}
-                  name={service.id}
-                  type="text"
-                  inputMode={service.id === "email" ? "email" : "url"}
-                  maxLength={500}
-                  defaultValue={links[service.id] ?? ""}
-                  placeholder={service.placeholder}
-                  className="h-10"
-                  autoComplete="off"
-                />
-              </div>
-            ))}
-          </div>
+                </li>
+              );
+            })}
+          </ul>
         </fieldset>
-      ))}
+      ) : null}
 
       <FormMessage state={state} />
       <Button type="submit" disabled={pending} className="h-12 w-full text-base">

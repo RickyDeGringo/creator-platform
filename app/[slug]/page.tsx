@@ -52,6 +52,7 @@ export default async function CreatorPage({ params, searchParams }: Props) {
       paypalLink={page.paypal_link}
       followerCount={followerCount}
       links={page.links}
+      linksOrder={page.links_order}
       iconSet={page.icon_set}
       isFollowing={isFollowing}
       signedIn={Boolean(viewer)}

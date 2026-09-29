@@ -1,5 +1,5 @@
 import { httpsUrl } from "@/lib/format";
-import { pageIconSet, pageLinksFrom } from "@/lib/page-links";
+import { pageIconSet, pageLinksFrom, pageLinksOrderFrom } from "@/lib/page-links";
 import { pageFont, pagePalette } from "@/lib/page-theme";
 import type {
   AccessCode,
@@ -33,6 +33,7 @@ export function toPage(value: unknown): CreatorPage {
     font: pageFont(row.font),
     icon_set: pageIconSet(row.icon_set),
     links: pageLinksFrom(row.links),
+    links_order: pageLinksOrderFrom(row.links_order),
     created_at: String(row.created_at),
   };
 }
