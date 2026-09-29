@@ -17,13 +17,16 @@ export function SiteHeader({
           Booth
         </Link>
         <nav className="flex flex-wrap items-center justify-end gap-1 sm:gap-2">
-          <Link href="/redeem" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-            Redeem
-          </Link>
           {viewer ? (
             <>
+              <Link href="/" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                Home
+              </Link>
               <Link href="/dashboard" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-                Dashboard
+                Pages
+              </Link>
+              <Link href="/messages" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                Messages
               </Link>
               <Link href="/profile" className={buttonVariants({ variant: "ghost", size: "sm" })}>
                 Profile
@@ -35,9 +38,14 @@ export function SiteHeader({
               </form>
             </>
           ) : (
-            <Link href="/login" className={buttonVariants({ size: "sm" })}>
-              Sign in
-            </Link>
+            <>
+              <Link href="/" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                Home
+              </Link>
+              <Link href="/login" className={buttonVariants({ size: "sm" })}>
+                Sign in
+              </Link>
+            </>
           )}
         </nav>
       </div>

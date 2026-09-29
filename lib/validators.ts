@@ -2,6 +2,7 @@ const RESERVED_SLUGS = new Set([
   "login",
   "redeem",
   "dashboard",
+  "messages",
   "preview",
   "profile",
   "auth",
@@ -15,7 +16,7 @@ export function safeNext(value: string | null | undefined) {
     value.startsWith("//") ||
     value.includes("\\")
   ) {
-    return "/dashboard";
+    return "/";
   }
   return value;
 }

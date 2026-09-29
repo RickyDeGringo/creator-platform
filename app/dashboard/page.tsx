@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Membership } from "@/lib/types";
 import { getViewer } from "@/lib/viewer";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: "Pages" };
 
 export default async function DashboardPage() {
   if (!isSupabaseConfigured()) {
@@ -50,7 +50,7 @@ export default async function DashboardPage() {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-10 px-4 py-12">
       <div>
-        <h1 className="font-heading text-5xl">Your pages</h1>
+        <h1 className="font-heading text-5xl">Pages</h1>
         <p className="mt-2 text-muted-foreground">Owners and managers can publish posts, update goals, and issue access.</p>
       </div>
 

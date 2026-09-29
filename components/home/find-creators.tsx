@@ -18,10 +18,8 @@ export function FindCreators({
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-12 sm:py-16">
       <div className="space-y-3">
         <p className="text-sm tracking-[0.2em] text-primary uppercase">Your feed</p>
-        <h1 className="font-heading text-5xl leading-none tracking-tight sm:text-6xl">Find a creator</h1>
-        <p className="max-w-lg text-lg leading-8 text-muted-foreground">
-          You are not following anyone yet. Search for a creator and their posts will show up here.
-        </p>
+        <h1 className="font-heading text-5xl leading-none tracking-tight sm:text-6xl">Following</h1>
+        <p className="max-w-lg text-lg leading-8 text-muted-foreground">You don&apos;t currently follow creators.</p>
       </div>
 
       <form action="/" className="space-y-3 rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
