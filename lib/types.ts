@@ -113,6 +113,29 @@ export type PostGoal = {
   current_amount_raised: number | string;
 };
 
+export type FeedCreator = {
+  slug: string;
+  displayName: string;
+  avatarUrl: string | null;
+  paypalLink: string | null;
+};
+
+export type FollowedCreator = {
+  id: string;
+  slug: string;
+  displayName: string;
+  avatarUrl: string | null;
+  unseenCount: number;
+};
+
+export type CreatorMatch = {
+  id: string;
+  slug: string;
+  displayName: string;
+  bio: string | null;
+  avatarUrl: string | null;
+};
+
 export type FeedPost = {
   id: string;
   page_id: string;
@@ -128,6 +151,8 @@ export type FeedPost = {
   is_locked: boolean;
   image_count: number | null;
   created_at: string;
+  unseen?: boolean;
+  creator?: FeedCreator;
 };
 
 export type ManagedPost = {

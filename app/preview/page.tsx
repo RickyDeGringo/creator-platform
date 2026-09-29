@@ -8,11 +8,14 @@ import { LinksManager } from "@/components/dashboard/links-manager";
 import { PageDesignChoice } from "@/components/dashboard/page-design-choice";
 import { PageDetailsForm } from "@/components/dashboard/page-forms";
 import { PostManager } from "@/components/dashboard/post-manager";
+import { FindCreators } from "@/components/home/find-creators";
+import { FollowingHome } from "@/components/home/following-home";
+import { PostFeed } from "@/components/creator/post-feed";
 import { CreatorView } from "@/components/creator/creator-view";
 import { PageTheme } from "@/components/creator/page-theme";
 import { RedeemForm } from "@/components/redeem-form";
 import { isSupabaseConfigured } from "@/lib/env";
-import type { AccessCode, CoverImage, CreatorPage, FeedPost, Goal, ManagedPost, PageMember, PostImage, WishlistCategory } from "@/lib/types";
+import type { AccessCode, CoverImage, CreatorPage, FeedPost, FollowedCreator, Goal, ManagedPost, PageMember, PostImage, WishlistCategory } from "@/lib/types";
 
 export const metadata: Metadata = { title: "UI preview" };
 
@@ -242,11 +245,76 @@ const previewCovers: CoverImage[] = [
   { id: "cover-2", ...swatch("Stage", "#1e3a5f", "#0d1520"), storage_path: null },
 ];
 
+function FollowingPreview() {
+  const nova = swatch("Nova", "#5c3317", "#1a120c");
+  const ridge = swatch("Ridge", "#1e3a5f", "#0d1520");
+  const creators: FollowedCreator[] = [
+    { id: "page-1", slug: "nova-live", displayName: "Nova Live", avatarUrl: nova.url, unseenCount: 3 },
+    { id: "page-2", slug: "ridge-notes", displayName: "Ridge Notes", avatarUrl: ridge.url, unseenCount: 1 },
+    { id: "page-3", slug: "quiet-booth", displayName: "Quiet Booth", avatarUrl: null, unseenCount: 0 },
+  ].sort((a, b) => {
+    const latest = (id: string) => {
+      if (id === "page-1") return posts[1].created_at;
+      if (id === "page-2") return posts[0].created_at;
+      return "";
+    };
+    return latest(b.id).localeCompare(latest(a.id));
+  });
+  const feed: FeedPost[] = [
+    {
+      ...posts[1],
+      unseen: true,
+      creator: {
+        slug: "nova-live",
+        displayName: "Nova Live",
+        avatarUrl: nova.url,
+        paypalLink: "https://www.paypal.com/paypalme/novalive",
+      },
+    },
+    {
+      ...posts[0],
+      page_id: "page-2",
+      unseen: true,
+      creator: {
+        slug: "ridge-notes",
+        displayName: "Ridge Notes",
+        avatarUrl: ridge.url,
+        paypalLink: null,
+      },
+    },
+  ];
+
+  return (
+    <div className="border-b border-foreground/10 bg-background">
+      <div className="mx-auto w-full max-w-3xl px-4 pt-8 pb-16">
+        <div className="mb-6 space-y-2">
+          <p className="text-sm tracking-[0.2em] text-primary uppercase">Your feed</p>
+          <h1 className="font-heading text-5xl leading-none tracking-tight sm:text-6xl">Following</h1>
+        </div>
+        <FollowingHome creators={creators}>
+          <PostFeed
+            posts={feed}
+            paypalLink={null}
+            slug=""
+            access={{ signedIn: true, following: true, member: false, viewerId: "preview" }}
+            canManage={false}
+            goals={[]}
+            categories={[]}
+            showJumpStrip={false}
+          />
+        </FollowingHome>
+      </div>
+      <FindCreators query="nova" results={[{ id: "page-1", slug: "nova-live", displayName: "Nova Live", bio: "Nightly lives and the gear fund.", avatarUrl: nova.url }]} />
+    </div>
+  );
+}
+
 export default function PreviewPage() {
   if (isSupabaseConfigured()) notFound();
 
   return (
     <div>
+      <FollowingPreview />
       <PageTheme palette="ember" font="editorial">
         <CreatorView
         slug="nova-live"

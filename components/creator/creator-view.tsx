@@ -26,6 +26,7 @@ export function CreatorView({
   categories,
   posts,
   canManage,
+  markSeen = false,
   notice,
 }: {
   slug: string;
@@ -45,6 +46,7 @@ export function CreatorView({
   categories: WishlistCategory[];
   posts: FeedPost[];
   canManage: boolean;
+  markSeen?: boolean;
   notice?: string | null;
 }) {
   return (
@@ -81,6 +83,7 @@ export function CreatorView({
               canManage={canManage}
               goals={goals}
               categories={categories}
+              markSeen={markSeen}
             />
           }
         />

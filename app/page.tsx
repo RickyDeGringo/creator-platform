@@ -1,20 +1,75 @@
 import type { Metadata } from "next";
 import { goToPage } from "@/app/actions/pages";
+import { FindCreators } from "@/components/home/find-creators";
+import { FollowingHome } from "@/components/home/following-home";
+import { PostFeed } from "@/components/creator/post-feed";
+import { SetupNotice } from "@/components/setup-notice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { creatorSearchTerm, loadFollowingHome, searchCreators } from "@/lib/following";
+import { getViewer } from "@/lib/viewer";
 
-export const metadata: Metadata = {
-  title: "Creator pages for live streams",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const viewer = await getViewer();
+  if (viewer) return { title: "Following" };
+  return { title: "Creator pages for live streams" };
+}
 
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; q?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, q } = await searchParams;
+  const home = await loadFollowingHome();
 
+  if (home.status === "unconfigured" || home.status === "signed_out") {
+    return <Landing error={error} />;
+  }
+
+  if (home.status === "error") {
+    return (
+      <div className="mx-auto w-full max-w-3xl px-4 py-16">
+        <SetupNotice detail={home.message} />
+      </div>
+    );
+  }
+
+  if (home.status === "empty") {
+    const query = creatorSearchTerm(q ?? "");
+    const search = query ? await searchCreators(query) : { results: [] };
+    return <FindCreators query={query} results={search.results} error={search.error} />;
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-3xl px-4 pt-8 pb-20">
+      <div className="mb-6 space-y-2">
+        <p className="text-sm tracking-[0.2em] text-primary uppercase">Your feed</p>
+        <h1 className="font-heading text-5xl leading-none tracking-tight sm:text-6xl">Following</h1>
+      </div>
+      <FollowingHome creators={home.creators}>
+        <PostFeed
+          posts={home.posts}
+          paypalLink={null}
+          slug=""
+          access={{
+            signedIn: true,
+            following: true,
+            member: false,
+            viewerId: home.viewer.id,
+          }}
+          canManage={false}
+          goals={[]}
+          categories={[]}
+          showJumpStrip={false}
+        />
+      </FollowingHome>
+    </div>
+  );
+}
+
+function Landing({ error }: { error?: string }) {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-16 sm:py-24">
       <div className="space-y-4">

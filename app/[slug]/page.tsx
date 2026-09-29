@@ -66,6 +66,7 @@ export default async function CreatorPage({ params, searchParams }: Props) {
       categories={categories}
       posts={posts}
       canManage={canManage}
+      markSeen={isFollowing}
       notice={error ?? null}
     />
     </PageTheme>

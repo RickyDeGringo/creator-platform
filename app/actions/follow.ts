@@ -28,5 +28,6 @@ export async function toggleFollow(formData: FormData) {
   }
 
   revalidatePath(next);
+  revalidatePath("/");
   revalidatePath(`/dashboard/${slug}`);
 }
