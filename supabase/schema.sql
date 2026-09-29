@@ -90,7 +90,12 @@ as $$
         )
         or char_length(item.value) < 1
         or char_length(item.value) > 500
-        or item.value !~ '^(https://|mailto:[^[:space:]]+@[^[:space:]]+)$'
+        or (
+          case
+            when item.key = 'email' then item.value !~ '^mailto:[^[:space:]]+@[^[:space:]]+$'
+            else item.value !~ '^https://[^[:space:]]+$'
+          end
+        )
     );
 $$;
 
